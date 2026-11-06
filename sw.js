@@ -27,7 +27,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(r => {
+    e.respondWith(fetch(req.url, { cache: 'no-cache' }).then(r => {   // revalide toujours : Pages met la page 10 min en cache HTTP
       if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); }
       return r;
     }).catch(() => caches.match('./index.html')));
