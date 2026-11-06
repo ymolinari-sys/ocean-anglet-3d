@@ -1,0 +1,413 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0f161c"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="OCÉAN 3D">
+<title>Cuisine OCÉAN Anglet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap">
+<style>
+/* Visite à 360° de la cuisine : WebGL plein écran, barre de points de vue en haut, joystick sur écran tactile, fiche d'aide au départ (interface du stand des Halles). */
+:root{
+  --bg:#eef1f4; --fg:#15202b; --panel:rgba(255,255,255,.88); --line:rgba(21,32,43,.14);
+  --accent:#1f5f9f; --accent-fg:#ffffff; --muted:#5d6b7a; --alert:#e8672b;
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1418; --fg:#e8edf2; --panel:rgba(18,24,30,.9); --line:rgba(232,237,242,.16);
+  --accent:#6fb1f0; --accent-fg:#0b1620; --muted:#9fb0c0; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1418; --fg:#e8edf2; --panel:rgba(18,24,30,.9); --line:rgba(232,237,242,.16);
+  --accent:#6fb1f0; --accent-fg:#0b1620; --muted:#9fb0c0; color-scheme:dark }
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;-webkit-user-select:none;user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px;display:flex;gap:10px;align-items:center;pointer-events:none}
+.brand{background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;padding:6px 10px;pointer-events:auto;min-width:0;flex:0 0 auto}
+.brand b{display:block;font-size:14px;line-height:1.15;text-wrap:balance}
+.brand span{display:block;font-size:11px;color:var(--muted);letter-spacing:.02em}
+.chips{display:flex;gap:6px;overflow-x:auto;pointer-events:auto;padding:2px;scrollbar-width:none;min-width:0}
+.chips::-webkit-scrollbar{display:none}
+button.chip{flex:0 0 auto;font:600 12.5px var(--font);color:var(--fg);background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:7px 11px;cursor:pointer}
+button.chip:focus-visible,button.primary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+#legend{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);bottom:calc(env(safe-area-inset-bottom,0px) + 56px);width:min(300px,calc(100vw - 24px));background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:10px 12px;overflow:auto;font-size:12.5px;line-height:1.35;box-sizing:border-box}
+#legend h2{font-size:12px;margin:0 0 6px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#legend ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+#legend li{display:grid;grid-template-columns:34px 1fr;gap:6px;align-items:baseline;cursor:pointer;border-radius:6px;padding:2px 4px}
+#legend li:hover{background:var(--line)}
+#legend li code{font:600 12px var(--font);color:var(--accent)}
+#legend li em{font-style:normal;color:var(--muted);font-size:11px}
+#legend p{margin:8px 0 0;font-size:11px;color:var(--muted)}
+#joy{position:fixed;left:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:124px;height:124px;border-radius:50%;background:var(--panel);border:1px solid var(--line);touch-action:none}
+#joy .knob{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);font-size:11.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+#note{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);font-size:10.5px;color:var(--muted);max-width:34vw;text-align:right;pointer-events:none}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--fg);color:var(--bg);font-size:12.5px;padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:calc(100vw - 32px)}
+#toast.show{opacity:.95}
+[hidden]{display:none!important}
+#help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,22,.45);padding:16px;overflow:auto;box-sizing:border-box}
+#help .card{margin:auto;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:18px 20px;max-width:430px;width:100%;box-sizing:border-box}
+#help h1{font-size:19px;margin:0 0 4px;text-wrap:balance}
+#help p{margin:0 0 10px;font-size:13.5px;line-height:1.45;color:var(--muted)}
+#help ul{margin:0 0 14px;padding-left:18px;font-size:13.5px;line-height:1.5}
+#help kbd{font:600 12px var(--font);border:1px solid var(--line);border-radius:5px;padding:1px 5px;background:var(--bg)}
+#load{font-size:12.5px!important}
+#load b{color:var(--fg);font-variant-numeric:tabular-nums}
+button.primary{font:700 14px var(--font);background:var(--accent);color:var(--accent-fg);border:0;border-radius:10px;padding:11px 16px;width:100%;cursor:pointer}
+button.primary:disabled{opacity:.55;cursor:progress}
+#vrwrap{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);display:flex;justify-content:center;gap:10px;pointer-events:none;z-index:999}
+#vrwrap button{position:static !important;transform:none;pointer-events:auto;font-family:var(--font) !important}
+@media (max-width:600px){ #note{display:none} .brand span{display:none} }
+@media (prefers-reduced-motion: reduce){ #toast{transition:none} }
+</style></head><body>
+
+<canvas id="c" aria-label="Visite 3D de la cuisine OCÉAN"></canvas>
+
+<div id="top">
+  <div class="brand"><b>Cuisine OCÉAN Anglet</b><span>EVI PRO · plan ZANUSSI 04/11/26</span></div>
+  <div class="chips" role="toolbar" aria-label="Points de vue">
+    <button class="chip" data-view="chef">Chef</button>
+    <button class="chip" data-view="entree">Entrée</button>
+    <button class="chip" data-view="patisserie">Pâtisserie</button>
+    <button class="chip" data-view="laverie">Laverie</button>
+    <button class="chip" data-view="plan">Plan</button>
+    <button class="chip" id="b-labels">Repères</button>
+    <button class="chip" id="b-legend">Liste</button>
+    <button class="chip" id="b-gyro" hidden>Gyroscope</button>
+    <button class="chip" id="b-install" hidden>Installer</button>
+    <button class="chip" id="b-help">Aide</button>
+  </div>
+</div>
+
+<aside id="legend" hidden>
+  <h2>Matériel</h2>
+  <ol id="legend-list"></ol>
+  <p>Toucher une ligne pour aller voir l'appareil.</p>
+</aside>
+
+<div id="joy" hidden aria-label="Joystick de déplacement"><div class="knob"></div></div>
+<div id="hint">Glisser pour regarder · Z Q S D ou flèches pour se déplacer</div>
+<div id="note">Image de synthèse non contractuelle · implantation d'après plan ZANUSSI du 04/11/26</div>
+<div id="toast" role="status"></div>
+<div id="vrwrap"></div>
+
+<div id="help">
+  <div class="card">
+    <h1>Visite de la cuisine OCÉAN</h1>
+    <p>Implantation 3D d'après le plan ZANUSSI du 04/11/26. Façades du matériel en photo réelle (Gafic et fabricants) quand elle existe, éclairage précalculé.</p>
+    <ul>
+      <li><b>Regarder</b> : glisser le doigt ou la souris.</li>
+      <li><b>Se déplacer</b> : joystick en bas à gauche sur téléphone, <kbd>Z</kbd> <kbd>Q</kbd> <kbd>S</kbd> <kbd>D</kbd> ou flèches sur ordinateur (<kbd>Maj</kbd> pour aller plus vite).</li>
+      <li><b>Points de vue</b> : Chef (devant la ligne de cuisson), Entrée, Pâtisserie, Laverie, Plan.</li>
+      <li><b>Repères</b> : codes C, P et L du plan. <b>Liste</b> : le matériel, un clic pour s'en approcher.</li>
+    </ul>
+    <p id="load">Chargement de la cuisine… <b>0 Mo</b></p>
+    <button class="primary" id="b-start">Entrer dans la cuisine</button>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $ = id => document.getElementById(id);
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
+const Q = new URLSearchParams(location.search), canvas = $('c');
+const AV = 2;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+
+// ---------- Rendu / scène ----------
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = +(Q.get('ev') || 0.9);
+renderer.xr.enabled = true;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdfe6ec);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(64, 1, 0.05, 80);
+const pitchObj = new THREE.Object3D(), rig = new THREE.Object3D();
+pitchObj.add(camera); rig.add(pitchObj); scene.add(rig);
+const EYE = 1.62, MAXA = renderer.capabilities.getMaxAnisotropy();
+
+// Repère Blender de build_scene_v3.py (X, Y, Z en mm) → three.js (m) : x = X, y = Z, z = −Y
+const P3 = (X, Y, Z = 0) => new THREE.Vector3(X / 1000, Z / 1000, -Y / 1000);
+const ROOM = { x0: 4542, x1: 15276, y0: 3810, y1: 12690 };
+
+const NOMS = {
+  C01: 'Four MY CHEF sur la cellule', C02: 'Cellule de refroidissement', C03: 'Soubassement réfrigéré CODIGEL',
+  C04: 'Plan neutre 400', C05: 'Feux vifs 800', C06: 'Fry-top 400', C07: 'Fry-top 800', C08: 'Friteuse 15 L', C09: 'Friteuse 15 L',
+  C10: 'Étagère barreaudée', C11: 'Table avec bac et robinet', C12: 'Four MY CHEF Cook Master 6 GN 1/1 + hotte à condensation',
+  C13: '3 friteuses à poser FIAMMA', C14: 'Meuble 4 tiroirs', C15: 'Meuble bas traversant', C16: 'Étagère chauffante', C17: 'Bain-marie',
+  C18: 'Table îlot', C19: 'Présentoir réfrigéré ATOSA', C20: 'Étagère suspendue', C21: 'Table îlot',
+  P01: 'Meuble pâtisserie tiroirs + évier', P02: 'Étagère murale', P03: 'Conservateur', P05: 'Table roulante',
+  L01: 'Plonge + douchette', L02: 'Lave-vaisselle à capot LAMBER', L03: 'Table de sortie', L04: 'Rayonnage Fermostock',
+};
+const EXIST = new Set(['C01', 'C02', 'P03']);
+// faces émissives : hors atlas d'éclairage (UV1 nulles), rendues en émission seule
+const EMIS = { led: null, rampe_ceramique: [1.0, 0.22, 0.04, 1.1], ecran_rouge: [1.0, 0.06, 0.04, 1.4] };
+const CEIL = new Set(['plafond', 'led']);   // masqués en vue Plan
+
+let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+
+// ---------- Chargement : scène glTF (JSON, tampon en base64 : l'hôte des artefacts ne sert ni .glb ni .bin), éclairage cuit, repères, grille ----------
+const loaded = new Map();
+function showLoad() { const mo = [...loaded.values()].reduce((a, b) => a + b, 0) / 1048576; $('load').innerHTML = `Chargement de la cuisine… <b>${mo.toFixed(1).replace('.', ',')} Mo</b>`; }
+async function fetchP(f) {
+  const r = await fetch(`assets/${f}?v=${AV}`).then(r => r.ok ? r : Promise.reject()).catch(() => fetch('assets/' + f));
+  if (!r.ok) throw new Error(f);
+  if (!r.body) { loaded.set(f, 0); return r.blob(); }
+  const rd = r.body.getReader(), parts = []; let n = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); n += value.length; loaded.set(f, n); showLoad(); }
+  return new Blob(parts);
+}
+const LMREF = +(Q.get('occ') || 0.35);   // éclairement (×π) sous lequel les reflets s'éteignent : intérieur des meubles, dessous des tables
+const LM_CHUNK = THREE.ShaderChunk.lights_fragment_maps
+  .replace('irradiance += lightMapIrradiance;', 'irradiance = lightMapIrradiance;')
+  .replace('iblIrradiance += getIBLIrradiance( geometryNormal );', '') + `
+#if defined( USE_LIGHTMAP ) && defined( RE_IndirectSpecular )
+  float lmOcc = clamp( dot( lightMapIrradiance, vec3( 0.2126, 0.7152, 0.0722 ) ) / ${LMREF.toFixed(3)}, 0.1, 1.0 );
+  radiance *= lmOcc;
+  #ifdef USE_CLEARCOAT
+    clearcoatRadiance *= lmOcc;
+  #endif
+#endif
+`;
+function lmMat(m, tex, k) {
+  m.lightMap = tex; m.lightMapIntensity = k;
+  m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <lights_fragment_maps>', LM_CHUNK); };
+  m.customProgramCacheKey = () => 'lm'; m.needsUpdate = true;
+}
+
+let G = null;   // grille de circulation 5 cm (bake_export.py) : 1 = bloqué
+const labelGroup = new THREE.Group(); labelGroup.visible = false; scene.add(labelGroup);
+let REP = {}, ready = false;
+
+async function load() {
+  const [sceneB, man, rep, grid] = await Promise.all([fetchP('scene/ocean.json'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
+    fetchP('bake/reperes.json').then(b => b.text()).then(JSON.parse), fetchP('bake/grille.json').then(b => b.text()).then(JSON.parse)]);
+  G = { ...grid, bits: Uint8Array.from(atob(grid.bits), c => c.charCodeAt(0)) }; REP = rep;
+  const lmB = /[?&]nolm\b/.test(location.search) ? null : await fetchP(`bake/lm_${LOWMEM ? man.size / 2 : man.size}.jpg`);
+  const gltf = await new GLTFLoader().parseAsync(await sceneB.text(), '');
+  let tex = null;
+  if (lmB) {
+    tex = new THREE.Texture(await createImageBitmap(lmB));
+    tex.channel = 1; tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(4, MAXA); tex.needsUpdate = true;
+  }
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    const m = o.material, n = m.name.split('.')[0];
+    if (CEIL.has(n)) o.userData.ceiling = true;
+    if (m.map) m.map.anisotropy = MAXA;
+    if (n in EMIS) { if (EMIS[n]) { const [r, g, b, k] = EMIS[n]; m.emissive.setRGB(r, g, b); m.emissiveIntensity = k; } return; }
+    if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.05; return; }
+    if (tex) lmMat(m, tex, man.scale);
+  });
+  scene.add(gltf.scene);
+  for (const [code, b] of Object.entries(rep)) if (NOMS[code]) makeLabel(code, b);
+  $('legend-list').innerHTML = Object.keys(NOMS).filter(c => rep[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join('');
+  document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
+  captureEnv();
+  ready = true; $('load').hidden = true; $('b-start').disabled = false;
+  if (VIEWS[cur]) setView(cur);   // la grille est là : repositionne hors des meubles
+  console.log(`[ocean] scène + éclairage ${man.size} px (${man.samples} éch.)`);
+}
+
+// reflets de l'inox : la cuisine éclairée elle-même, vue du centre de la pièce
+function captureEnv() {
+  if (renderer.xr.isPresenting) return;
+  const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+  const cc = new THREE.CubeCamera(0.05, 40, rt); cc.position.copy(P3(9800, 8000, 1450)); scene.add(cc);
+  const lv = labelGroup.visible; labelGroup.visible = false; cc.update(renderer, scene); labelGroup.visible = lv; scene.remove(cc);
+  const old = scene.environment; scene.environment = pmrem.fromCubemap(rt.texture).texture; rt.dispose(); if (old) old.dispose();
+}
+
+// ---------- Repères (sprites au-dessus de chaque appareil) ----------
+function makeLabel(code, b) {
+  const text = `${code}  ${NOMS[code]}${EXIST.has(code) ? ' (existant)' : ''}`;
+  const cv = document.createElement('canvas'), g = cv.getContext('2d');
+  g.font = '600 44px Figtree, system-ui, sans-serif'; cv.width = Math.ceil(g.measureText(text).width + 48); cv.height = 76;
+  g.font = '600 44px Figtree, system-ui, sans-serif';
+  g.fillStyle = 'rgba(21,32,43,.86)'; g.beginPath(); g.roundRect(0, 0, cv.width, 76, 20); g.fill();
+  g.fillStyle = '#6fb1f0'; g.fillText(code, 22, 54); g.fillStyle = '#fff'; g.fillText(text.slice(code.length), 22 + g.measureText(code).width, 54);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
+  const h = 0.11; sp.scale.set(h * cv.width / 76, h, 1); sp.userData.h = h;
+  sp.position.copy(P3((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, Math.min(b.max[2], 2400) + 140)); sp.renderOrder = 10;
+  labelGroup.add(sp);
+}
+
+// ---------- Circulation : grille 5 cm, personne de 25 cm de rayon ----------
+const R = 250;
+const blocked = (X, Y) => {
+  const i = Math.floor((X - G.x0) / G.cell), j = Math.floor((Y - G.y0) / G.cell);
+  if (i < 0 || j < 0 || i >= G.nx || j >= G.ny) return true;
+  const k = j * G.nx + i; return (G.bits[k >> 3] >> (7 - (k & 7))) & 1;
+};
+function freeAt(X, Y) {
+  if (!G) return true;
+  for (let dj = -R; dj <= R; dj += G.cell) for (let di = -R; di <= R; di += G.cell) if (di * di + dj * dj <= R * R && blocked(X + di, Y + dj)) return false;
+  return true;
+}
+function nearestFree(X, Y) {   // anneaux de 5 cm jusqu'à 2 m
+  if (!G || freeAt(X, Y)) return [X, Y];
+  for (let r = 1; r <= 40; r++) {
+    let best = null, bd = 1e9;
+    for (let a = 0; a < 64; a++) { const x = X + Math.cos(a * Math.PI / 32) * r * 50, y = Y + Math.sin(a * Math.PI / 32) * r * 50; if (freeAt(x, y)) { const d = Math.hypot(x - X, y - Y); if (d < bd) { bd = d; best = [x, y]; } } }
+    if (best) return best;
+  }
+  return [X, Y];
+}
+
+// ---------- Points de vue ----------
+let yaw = 0, pitch = 0, planMode = false, gyro = false, devOri = null, alphaOffset = 0, labelsBig = false, cur = 'chef';
+const pos = rig.position;
+const yawTo = (X, Y, tX, tY) => Math.atan2(-(tX - X) / 1000, (tY - Y) / 1000);   // three : regarder vers −z = +Y
+function stand(X, Y, tX, tY, p = -0.12) {
+  planMode = false; const [x, y] = nearestFree(X, Y);
+  pos.copy(P3(x, y)); pos.y = renderer.xr.isPresenting ? 0 : EYE; yaw = yawTo(x, y, tX, tY); pitch = p;
+}
+const VIEWS = {
+  chef:       () => stand(7900, 5250, 5600, 7300, -0.2),    // au bout de la ligne de cuisson, côté friteuses, regard le long des feux
+  entree:     () => stand(9415, 4450, 9300, 9000, -0.1),     // porte d'entrée, vers le fond
+  patisserie: () => stand(11300, 8650, 11300, 10300, -0.14),
+  laverie:    () => stand(9800, 11150, 8600, 12200, -0.14),
+  plan:       () => {
+    planMode = true; const port = innerHeight > innerWidth, w = ROOM.x1 - ROOM.x0, d = ROOM.y1 - ROOM.y0;
+    const [sw, sh] = port ? [d, w] : [w, d], tn = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const hgt = Math.max(sh, sw / camera.aspect) / 2 / tn * 1.06 / 1000 + 2.8;
+    pos.copy(P3((ROOM.x0 + ROOM.x1) / 2, (ROOM.y0 + ROOM.y1) / 2)); pos.y = hgt; yaw = port ? Math.PI / 2 : 0; pitch = -Math.PI / 2 + 0.001;
+  },
+};
+function setView(name) {
+  cur = name; VIEWS[name](); alphaOffset = 0;
+  scene.traverse(o => { if (o.userData.ceiling) o.visible = !planMode; });
+  if (planMode !== labelsBig) { const f = planMode ? 2.6 : 1 / 2.6; labelGroup.children.forEach(s => s.scale.multiplyScalar(f)); labelsBig = planMode; }
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+  $('hint').textContent = planMode ? 'Vue de dessus · glisser pour pivoter · flèches pour décaler' : (isTouch ? 'Glisser pour regarder · joystick pour avancer' : 'Glisser pour regarder · Z Q S D ou flèches pour se déplacer');
+}
+function goTo(code) {   // devant l'appareil : on part du centre de la pièce vers lui et on s'arrête à ~1,2 m
+  const b = REP[code]; if (!b) return;
+  const cx = (b.min[0] + b.max[0]) / 2, cy = (b.min[1] + b.max[1]) / 2, mx = 9800, my = 8000;
+  const L = Math.hypot(cx - mx, cy - my) || 1, ux = (mx - cx) / L, uy = (my - cy) / L, ext = Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1]) / 2;
+  let X = cx + ux * (ext + 900), Y = cy + uy * (ext + 900);
+  X = Math.min(Math.max(X, ROOM.x0 + 300), ROOM.x1 - 300); Y = Math.min(Math.max(Y, ROOM.y0 + 300), ROOM.y1 - 300);
+  cur = code; stand(X, Y, cx, cy, -Math.atan2(EYE * 1000 - (b.min[2] + b.max[2]) / 2, Math.hypot(cx - X, cy - Y) || 1) * 0.8);
+  scene.traverse(o => { if (o.userData.ceiling) o.visible = true; });
+  if (labelsBig) { labelGroup.children.forEach(s => s.scale.multiplyScalar(1 / 2.6)); labelsBig = false; }
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
+  if (innerWidth < 700) { $('legend').hidden = true; $('b-legend').classList.remove('on'); }
+  toast(`${code} · ${NOMS[code]}`);
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+$('b-labels').addEventListener('click', e => { labelGroup.visible = !labelGroup.visible; e.currentTarget.classList.toggle('on', labelGroup.visible); });
+$('b-legend').addEventListener('click', e => { $('legend').hidden = !$('legend').hidden; e.currentTarget.classList.toggle('on', !$('legend').hidden); });
+$('b-help').addEventListener('click', () => { $('help').hidden = false; });
+$('b-start').addEventListener('click', () => { $('help').hidden = true; });
+$('b-start').disabled = true;
+if (isTouch) { $('joy').hidden = false; $('b-gyro').hidden = false; }
+
+// regarder : glisser sur la vue (souris, trackpad et doigt « tirent le monde », comme aux Halles)
+let lookId = null, lx = 0, ly = 0, lookTouch = false;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+canvas.addEventListener('pointerdown', e => { if (lookId !== null) return; lookId = e.pointerId; lookTouch = e.pointerType === 'touch'; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerId !== lookId) return; const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+  const k = lookTouch ? 0.0048 : 0.0035;
+  if (gyro) alphaOffset += dx * k; else yaw += dx * k;
+  if (!gyro && !planMode) pitch = clamp(pitch + dy * k, -1.45, 1.45);
+});
+const endLook = e => { if (e.pointerId === lookId) lookId = null; };
+canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+
+// se déplacer : touches (positions physiques : ZQSD en AZERTY, WASD en QWERTY) + joystick
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault(); });
+addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+const joy = $('joy'), knob = joy.querySelector('.knob'); let joyId = null; const jv = { x: 0, y: 0 };
+function joyUpd(e) { const r = joy.getBoundingClientRect(); let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); const max = r.width / 2 - 20, len = Math.hypot(dx, dy); if (len > max) { dx *= max / len; dy *= max / len; } jv.x = dx / max; jv.y = dy / max; knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
+joy.addEventListener('pointerdown', e => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); joyUpd(e); });
+joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyUpd(e); });
+const joyEnd = e => { if (e.pointerId === joyId) { joyId = null; jv.x = jv.y = 0; knob.style.transform = 'translate(-50%,-50%)'; } };
+joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
+
+// gyroscope (page servie en HTTPS au premier niveau ; le cadre de l'artefact peut le refuser)
+const gq = new THREE.Quaternion(), gE = new THREE.Euler(), q1 = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2), zee = new THREE.Vector3(0, 0, 1), q0 = new THREE.Quaternion();
+const onDev = e => { if (e.alpha != null) devOri = e; };
+$('b-gyro').addEventListener('click', async e => {
+  const btn = e.currentTarget;
+  if (gyro) { gyro = false; devOri = null; removeEventListener('deviceorientation', onDev); btn.classList.remove('on'); camera.quaternion.identity(); return; }
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('refusé'); }
+    addEventListener('deviceorientation', onDev); gyro = true; alphaOffset = yaw; btn.classList.add('on');
+    setTimeout(() => { if (gyro && !devOri) { gyro = false; removeEventListener('deviceorientation', onDev); btn.classList.remove('on'); toast('Gyroscope indisponible ici. Glisse le doigt pour regarder.'); } }, 1800);
+  } catch (err) { toast('Gyroscope refusé. Glisse le doigt pour regarder.'); }
+});
+
+// casque VR (affiché seulement si WebXR est disponible)
+if (navigator.xr && navigator.xr.isSessionSupported) {
+  navigator.xr.isSessionSupported('immersive-vr').then(ok => { if (ok) $('vrwrap').appendChild(VRButton.createButton(renderer)); }).catch(() => {});
+  renderer.xr.addEventListener('sessionstart', () => { if (planMode) setView('chef'); pos.y = 0; pitch = 0; camera.quaternion.identity(); });
+  renderer.xr.addEventListener('sessionend', () => { pos.y = EYE; });
+}
+
+// ---------- Installation comme application (GitHub Pages seulement) ----------
+const onPages = /github\.io$/.test(location.hostname), standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if ('serviceWorker' in navigator && onPages) navigator.serviceWorker.register('sw.js').catch(() => {});
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!standalone) $('b-install').hidden = false; });
+addEventListener('appinstalled', () => { $('b-install').hidden = true; installEvt = null; toast('Application installée : lance-la depuis l\'écran d\'accueil ou le Dock.'); });
+if (onPages && isIOS && !standalone) $('b-install').hidden = false;
+$('b-install').addEventListener('click', async () => {
+  if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; if (r.outcome === 'accepted') $('b-install').hidden = true; installEvt = null; }
+  else toast(isIOS ? 'Safari : bouton Partager (carré avec flèche) → « Sur l\'écran d\'accueil » → Ajouter.' : 'Chrome : icône « Installer » à droite de la barre d\'adresse. Safari Mac : menu Fichier → Ajouter au Dock.');
+});
+
+// ---------- Boucle ----------
+const clock = new THREE.Clock(), vdir = new THREE.Vector3();
+let snapSize = null;
+function resize() { const w = snapSize ? snapSize[0] : innerWidth, h = snapSize ? snapSize[1] : innerHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (planMode) VIEWS.plan(); } }
+addEventListener('resize', resize);
+function move(dx, dz) {   // glisse le long des obstacles
+  const X = pos.x * 1000, Y = -pos.z * 1000, nX = X + dx * 1000, nY = Y - dz * 1000;
+  if (planMode || !G || !freeAt(X, Y) || freeAt(nX, nY)) { pos.x += dx; pos.z += dz; }
+  else if (freeAt(nX, Y)) pos.x += dx;
+  else if (freeAt(X, nY)) pos.z += dz;
+  if (planMode) { pos.x = clamp(pos.x, ROOM.x0 / 1000, ROOM.x1 / 1000); pos.z = clamp(pos.z, -ROOM.y1 / 1000, -ROOM.y0 / 1000); }
+}
+function tick() {
+  resize();
+  const dt = Math.min(clock.getDelta(), 0.05), xr = renderer.xr.isPresenting;
+  let f = 0, s = 0;
+  if (keys.KeyW || keys.KeyZ || keys.ArrowUp) f += 1; if (keys.KeyS || keys.ArrowDown) f -= 1;
+  if (keys.KeyA || keys.KeyQ || keys.ArrowLeft) s -= 1; if (keys.KeyD || keys.ArrowRight) s += 1;
+  f -= jv.y; s += jv.x;
+  let heading = yaw + (gyro ? alphaOffset : 0);
+  if (xr) {
+    for (const src of renderer.xr.getSession().inputSources) { const gp = src.gamepad; if (!gp || gp.axes.length < 4) continue; if (src.handedness === 'right') { if (Math.abs(gp.axes[2]) > 0.7 && !src._snap) { yaw -= Math.sign(gp.axes[2]) * Math.PI / 6; src._snap = true; } if (Math.abs(gp.axes[2]) < 0.3) src._snap = false; } else { s += gp.axes[2]; f -= gp.axes[3]; } }
+    renderer.xr.getCamera().getWorldDirection(vdir); heading = Math.atan2(-vdir.x, -vdir.z);
+  } else if (gyro && devOri) { camera.getWorldDirection(vdir); heading = Math.atan2(-vdir.x, -vdir.z); }
+  if (f || s) {
+    const len = Math.hypot(f, s); if (len > 1) { f /= len; s /= len; }
+    const sp = (keys.ShiftLeft || keys.ShiftRight ? 2.2 : 1.2) * (planMode ? 3 : 1) * dt;
+    move((-Math.sin(heading) * f + Math.cos(heading) * s) * sp, (-Math.cos(heading) * f - Math.sin(heading) * s) * sp);
+  }
+  if (gyro && devOri && !xr) {
+    const a = THREE.MathUtils.degToRad(devOri.alpha), b = THREE.MathUtils.degToRad(devOri.beta), g = THREE.MathUtils.degToRad(devOri.gamma);
+    const orient = THREE.MathUtils.degToRad((screen.orientation && screen.orientation.angle) || window.orientation || 0);
+    gE.set(b, a, -g, 'YXZ'); gq.setFromEuler(gE); gq.multiply(q1); gq.multiply(q0.setFromAxisAngle(zee, -orient));
+    camera.quaternion.copy(gq); pitchObj.rotation.x = 0; rig.rotation.y = alphaOffset;
+  } else { rig.rotation.y = yaw; pitchObj.rotation.x = xr ? 0 : pitch; }
+  renderer.render(scene, camera);
+}
+resize(); setView('chef');
+renderer.setAnimationLoop(tick);
+load().catch(e => { console.error(e); $('load').textContent = 'Chargement impossible : ' + e.message; toast('Chargement impossible : ' + e.message); });
+window.DBG = { scene, renderer, camera, THREE, captureEnv, goTo, freeAt, pos: () => [Math.round(pos.x * 1000), Math.round(-pos.z * 1000)],
+  look: (X, Y, tX, tY, p = -0.12) => stand(X, Y, tX, tY, p),
+  snap: (w = 1280, h = 720, q = 0.9) => { snapSize = [w, h]; tick(); const d = canvas.toDataURL('image/jpeg', q); snapSize = null; return d; } };
+</script>
+</body></html>
