@@ -92,7 +92,7 @@ button.primary:disabled{opacity:.55;cursor:progress}
 <div id="help">
   <div class="card">
     <h1>Visite de la cuisine OCÉAN</h1>
-    <p>Implantation 3D d'après le plan ZANUSSI du 04/11/26. Façades du matériel en photo réelle (Gafic et fabricants) quand elle existe, éclairage précalculé.</p>
+    <p>Implantation 3D d'après le plan ZANUSSI du 04/11/26. Façades du matériel en photo réelle (Gafic et fabricants) quand elle existe, inox brossé en texture photo.</p>
     <ul>
       <li><b>Regarder</b> : glisser le doigt ou la souris.</li>
       <li><b>Se déplacer</b> : joystick en bas à gauche sur téléphone, <kbd>Z</kbd> <kbd>Q</kbd> <kbd>S</kbd> <kbd>D</kbd> ou flèches sur ordinateur (<kbd>Maj</kbd> pour aller plus vite).</li>
@@ -115,12 +115,15 @@ const $ = id => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
-const AV = 2;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AV = 3;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
 
 // ---------- Rendu / scène ----------
+// rendu « présentation » par défaut, comme la 3D SketchUp de Julie : inox en photo, lumière plate et blanche, contours noirs ;
+// ?rendu=cuit : rendu précédent (éclairage cuit + reflets du métal)
+const PLAN = Q.get('rendu') !== 'cuit';
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = PLAN ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;   // pas de compression des blancs : murs et carrelage restent blancs
 renderer.toneMappingExposure = +(Q.get('ev') || 1.1);
 renderer.xr.enabled = true;
 const scene = new THREE.Scene();
@@ -140,9 +143,9 @@ const NOMS = {
   C01: 'Four MY CHEF sur la cellule', C02: 'Cellule de refroidissement', C03: 'Soubassement réfrigéré CODIGEL',
   C04: 'Plan neutre 400', C05: 'Feux vifs 800', C06: 'Fry-top 400', C07: 'Fry-top 800', C08: 'Friteuse 15 L', C09: 'Friteuse 15 L',
   C10: 'Étagère barreaudée', C11: 'Table avec bac et robinet', C12: 'Four MY CHEF Cook Master 6 GN 1/1 + hotte à condensation',
-  C13: '3 friteuses à poser FIAMMA', C14: 'Meuble 4 tiroirs', C15: 'Meuble bas traversant', C16: 'Étagère chauffante', C17: 'Bain-marie',
-  C18: 'Table îlot', C19: 'Présentoir réfrigéré ATOSA', C20: 'Étagère suspendue', C21: 'Table îlot',
-  P01: 'Meuble pâtisserie tiroirs + évier', P02: 'Étagère murale', P03: 'Conservateur', P05: 'Table roulante',
+  C13: '3 friteuses à poser FIAMMA', C14: 'Meuble réfrigéré négatif 4 tiroirs CODIGEL', C15: 'Meuble bas traversant', C16: 'Étagère chauffante', C17: 'Bain-marie',
+  C18: 'Meuble réfrigéré 6 tiroirs CODIGEL (îlot)', C19: 'Présentoir réfrigéré ATOSA', C20: 'Étagère suspendue',
+  C21: 'Meuble réfrigéré 6 tiroirs CODIGEL (îlot)', P01: 'Meuble réfrigéré 6 tiroirs avec bac CODIGEL', P02: 'Étagère murale', P03: 'Conservateur', P05: 'Table roulante',
   L01: 'Plonge + douchette', L02: 'Lave-vaisselle à capot LAMBER', L03: 'Table de sortie', L04: 'Rayonnage Fermostock',
 };
 const EXIST = new Set(['C01', 'C02', 'P03']);
@@ -166,8 +169,16 @@ async function fetchP(f) {
 const LMREF = +(Q.get('occ') || 0.35);   // éclairement (×π) sous lequel les reflets s'éteignent : intérieur des meubles, dessous des tables
 // ambiance claire « présentation » : éclairement cuit × GAIN + lumière d'appoint uniforme FILL (débouche les ombres)
 const GAIN = +(Q.get('gain') || 1), FILL = +(Q.get('fill') ?? 0.35);
+// rendu « présentation » : lumière plate façon SketchUp = ambiance AMB + soleil fixe SOLEIL selon l'orientation de la face,
+// assombrie dans les recoins d'après l'éclairement cuit (poids OMBRE ; plein jour au-delà de OCC_REF ≈ médiane de la cuisson)
+const AMB = +(Q.get('amb') || 0.72), SOLEIL = +(Q.get('soleil') || 0.3), OMBRE = +(Q.get('ombre') ?? 0.5), OCC_REF = 0.25;
+const SOLDIR = new THREE.Vector3(0.45, 1, 0.65).normalize(), f3 = v => v.toArray().map(x => x.toFixed(3)).join(', ');
+const IRR = PLAN
+  ? `irradiance = vec3( PI * ( ${AMB.toFixed(3)} + ${SOLEIL.toFixed(3)} * max( dot( inverseTransformDirection( geometryNormal, viewMatrix ), vec3( ${f3(SOLDIR)} ) ), 0.0 ) )
+    * mix( 1.0, clamp( dot( lightMapIrradiance, vec3( 0.2126, 0.7152, 0.0722 ) ) / ${OCC_REF.toFixed(3)}, 0.0, 1.0 ), ${OMBRE.toFixed(3)} ) );`
+  : `irradiance = lightMapIrradiance * ${GAIN.toFixed(3)} + vec3( ${(FILL * Math.PI).toFixed(3)} );`;
 const LM_CHUNK = THREE.ShaderChunk.lights_fragment_maps
-  .replace('irradiance += lightMapIrradiance;', `irradiance = lightMapIrradiance * ${GAIN.toFixed(3)} + vec3( ${(FILL * Math.PI).toFixed(3)} );`)
+  .replace('irradiance += lightMapIrradiance;', IRR)
   .replace('iblIrradiance += getIBLIrradiance( geometryNormal );', '') + `
 #if defined( USE_LIGHTMAP ) && defined( RE_IndirectSpecular )
   float lmOcc = clamp( dot( lightMapIrradiance, vec3( 0.2126, 0.7152, 0.0722 ) ) / ${LMREF.toFixed(3)}, 0.1, 1.0 );
@@ -196,6 +207,9 @@ const DECOR = {
     float d = min( e.x, e.y ), w = fwidth( d ), hw = ${(0.0015 / TILE).toFixed(5)};
     diffuseColor.rgb = mix( vec3( 0.55, 0.57, 0.58 ), diffuseColor.rgb, smoothstep( hw - w, hw + w, d ) );
   }`],
+  // inox en photo (rendu présentation) : ambientCG Metal009, CC0 (tools/inox_tex.py) ; un carreau de texture = 0,6 m, sur les UV de brossage()
+  photo: ['#include <color_fragment>', `
+  diffuseColor.rgb *= texture2D( tInox, vUvb / 0.6 ).rgb;`],
 };
 const DECOR_V = '\n  vWP = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz; vWN = normalize( mat3( modelMatrix ) * objectNormal );';
 function lmMat(m, tex, k, kind) {
@@ -203,13 +217,53 @@ function lmMat(m, tex, k, kind) {
   m.onBeforeCompile = sh => {
     if (tex) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_fragment_maps>', LM_CHUNK);
     if (!kind) return;
-    const [at, code] = DECOR[kind], V = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;';
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', V).replace('#include <project_vertex>', '#include <project_vertex>' + DECOR_V);
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', V).replace(at, at + code);
+    const [at, code] = DECOR[kind], ph = kind === 'photo', V = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;' + (ph ? ' varying vec2 vUvb;' : '');
+    if (ph) sh.uniforms.tInox = { value: INOX };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', V + (ph ? ' attribute vec2 uvb;' : ''))
+      .replace('#include <project_vertex>', '#include <project_vertex>' + DECOR_V + (ph ? ' vUvb = uvb;' : ''));
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', V + (ph ? ' uniform sampler2D tInox;' : '')).replace(at, at + code);
   };
   m.customProgramCacheKey = () => 'lm' + !!tex + (kind || ''); m.needsUpdate = true;
 }
-const BROSSE = new Set(['inox', 'inox_facade']);
+// UV de brossage (m) pour la photo d'inox : u suit les traits. Faces verticales : u horizontal le long de la face, v = hauteur.
+// Dessus : u dans la longueur du meuble — îlots de sommets soudés au mm, sens = arêtes vives horizontales (modulo 90°), côté le plus long.
+function brossage(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, I = g.index.array, nv = P.length / 3;
+  const key = new Map(), id = new Int32Array(nv);
+  for (let i = 0; i < nv; i++) {
+    const k = `${Math.round(P[3 * i] * 1e3)},${Math.round(P[3 * i + 1] * 1e3)},${Math.round(P[3 * i + 2] * 1e3)}`;
+    let v = key.get(k); if (v === undefined) key.set(k, v = key.size); id[i] = v;
+  }
+  const n = key.size, up = Int32Array.from({ length: n }, (_, i) => i), root = a => { while (up[a] !== a) a = up[a] = up[up[a]]; return a; };
+  for (let t = 0; t < I.length; t += 3) { const a = root(id[I[t]]); up[root(id[I[t + 1]])] = a; up[root(id[I[t + 2]])] = a; }
+  // arête vive = arête d'un seul triangle (sommets dédoublés aux arêtes vives ; les diagonales d'une face sont partagées par deux triangles)
+  const nb = new Map();
+  for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) {
+    const a = I[t + e], b = I[t + (e + 1) % 3], k = Math.min(a, b) * nv + Math.max(a, b);
+    nb.set(k, (nb.get(k) || 0) + 1);
+  }
+  const C = new Float64Array(n), S = new Float64Array(n), th = new Float64Array(n), E = new Float64Array(4 * n);
+  for (const [k, c] of nb) {
+    const a = Math.floor(k / nv), b = k % nv, dx = P[3 * b] - P[3 * a], dz = P[3 * b + 2] - P[3 * a + 2], L = Math.hypot(dx, dz);
+    if (c !== 1 || Math.abs(P[3 * b + 1] - P[3 * a + 1]) > 1e-3 || L < 0.005) continue;
+    const r = root(id[a]), w = 4 * Math.atan2(dz, dx); C[r] += L * Math.cos(w); S[r] += L * Math.sin(w);
+  }
+  for (let r = 0; r < n; r++) { th[r] = Math.atan2(S[r], C[r]) / 4; E[4 * r] = E[4 * r + 2] = Infinity; E[4 * r + 1] = E[4 * r + 3] = -Infinity; }
+  for (let i = 0; i < nv; i++) {
+    const r = root(id[i]), c = Math.cos(th[r]), s = Math.sin(th[r]), p = P[3 * i] * c + P[3 * i + 2] * s, q = P[3 * i + 2] * c - P[3 * i] * s;
+    E[4 * r] = Math.min(E[4 * r], p); E[4 * r + 1] = Math.max(E[4 * r + 1], p); E[4 * r + 2] = Math.min(E[4 * r + 2], q); E[4 * r + 3] = Math.max(E[4 * r + 3], q);
+  }
+  for (let r = 0; r < n; r++) if (E[4 * r + 3] - E[4 * r + 2] > E[4 * r + 1] - E[4 * r]) th[r] += Math.PI / 2;
+  const uv = new Float32Array(2 * nv);
+  for (let i = 0; i < nv; i++) {
+    const x = P[3 * i], z = P[3 * i + 2], nx = N[3 * i], nz = N[3 * i + 2];
+    if (Math.abs(N[3 * i + 1]) > 0.7) { const t = th[root(id[i])], c = Math.cos(t), s = Math.sin(t); uv[2 * i] = x * c + z * s; uv[2 * i + 1] = z * c - x * s; }
+    else { const h = Math.hypot(nx, nz) || 1; uv[2 * i] = (x * nz - z * nx) / h; uv[2 * i + 1] = P[3 * i + 1]; }
+  }
+  g.setAttribute('uvb', new THREE.BufferAttribute(uv, 2));
+}
+const BROSSE = new Set(['inox', 'inox_facade']), PHOTO = new Set(['inox', 'inox_facade', 'inox_sombre']);
+let INOX = null;   // photo d'inox (rendu présentation)
 // contours noirs « style plan » (comme la présentation SketchUp) : arêtes vives des appareils et des murs
 const EDGE = new THREE.LineBasicMaterial({ color: 0x1d2328, transparent: true, opacity: 0.6 }), edges = [];
 
@@ -218,8 +272,13 @@ const labelGroup = new THREE.Group(); labelGroup.visible = false; scene.add(labe
 let REP = {}, ready = false;
 
 async function load() {
-  const [sceneB, man, rep, grid] = await Promise.all([fetchP('scene/ocean.json'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
-    fetchP('bake/reperes.json').then(b => b.text()).then(JSON.parse), fetchP('bake/grille.json').then(b => b.text()).then(JSON.parse)]);
+  const [sceneB, man, rep, grid, inoxB] = await Promise.all([fetchP('scene/ocean.json'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
+    fetchP('bake/reperes.json').then(b => b.text()).then(JSON.parse), fetchP('bake/grille.json').then(b => b.text()).then(JSON.parse),
+    PLAN ? fetchP(`tex/inox_${LOWMEM ? 1024 : 2048}.jpg`) : null]);
+  if (inoxB) {
+    INOX = new THREE.Texture(await createImageBitmap(inoxB));
+    INOX.wrapS = INOX.wrapT = THREE.RepeatWrapping; INOX.flipY = false; INOX.colorSpace = THREE.SRGBColorSpace; INOX.anisotropy = MAXA; INOX.needsUpdate = true;
+  }
   G = { ...grid, bits: Uint8Array.from(atob(grid.bits), c => c.charCodeAt(0)) }; REP = rep;
   const lmB = /[?&]nolm\b/.test(location.search) ? null : await fetchP(`bake/lm_${LOWMEM ? man.size / 2 : man.size}.jpg`);
   const gltf = await new GLTFLoader().parseAsync(await sceneB.text(), '');
@@ -236,7 +295,10 @@ async function load() {
     if (m.map) m.map.anisotropy = MAXA;
     if (n in EMIS) { if (EMIS[n]) { const [r, g, b, k] = EMIS[n]; m.emissive.setRGB(r, g, b); m.emissiveIntensity = k; } continue; }
     if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.05; continue; }
-    lmMat(m, tex, man.scale, BROSSE.has(n) ? 'brosse' : n === 'sol' ? 'sol' : '');
+    const kind = INOX && PHOTO.has(n) ? 'photo' : BROSSE.has(n) ? 'brosse' : n === 'sol' ? 'sol' : '';
+    if (kind === 'photo') { brossage(o.geometry); m.metalness = 0; m.roughness = 0.5; m.color.multiplyScalar(1 / 0.76); }   // l'inox de base (0,76) prend la photo telle quelle
+    if (PLAN && n === 'mur') m.color.setScalar(0.95);   // murs blancs comme chez Julie (teinte des murs : pas dans le plan)
+    lmMat(m, tex, man.scale, kind);
     if (CEIL.has(n) || n === 'sol') continue;
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 25), EDGE);
     e.visible = edgesOn; o.add(e); edges.push(e);
