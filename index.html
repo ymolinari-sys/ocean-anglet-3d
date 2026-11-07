@@ -143,7 +143,7 @@ const $ = id => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
-const AV = 14;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AV = 15;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
 
 // ---------- Rendu / scène ----------
 // deux rendus, bouton « Rendu réel » (setRendu) : réel par défaut (éclairage cuit, inox brossé qui reflète la cuisine, comme la page 1
@@ -151,7 +151,7 @@ const AV = 14;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de f
 let PLAN = Q.get('rendu') === 'dessin';
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
-renderer.toneMappingExposure = +(Q.get('ev') || 1.3);
+renderer.toneMappingExposure = +(Q.get('ev') || 1.05);
 renderer.xr.enabled = true;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe6ec);
@@ -225,10 +225,10 @@ const TILE = 0.3, T0 = P3(ROOM.x0, ROOM.y0);   // carrelage 30 cm : choix de ren
 // brossage du rendu réel : variation de teinte et de rugosité tirées de la carte (±0,5) ; un carreau = 0,5 m
 const VC = +(Q.get('vc') ?? 0.12), VR = +(Q.get('vr') ?? 0.16), ECH = 0.5;
 // inox du rendu réel : reflet de l'acier = KI × teinte du modèle (0,76), rugosité RO, orientation du reflet brossé ROT (choix de rendu)
-const KI = +(Q.get('ki') ?? 0.92), RO = +(Q.get('ro') ?? 0.16), ROT = +(Q.get('rot') ?? Math.PI / 2);
+const KI = +(Q.get('ki') ?? 0.75), RO = +(Q.get('ro') ?? 0.25), ROT = +(Q.get('rot') ?? Math.PI / 2);
 // éclat (choix de rendu) : plafonniers LEDX fois plus forts dans les reflets seulement, brossé d'anisotropie AN, halo HALO des points
 // plus lumineux que SEUIL (rendu réel sur ordinateur, ?halo=0 pour s'en passer)
-const LEDX = +(Q.get('led') || 3), AN = +(Q.get('an') ?? 0.6), HALO = +(Q.get('halo') ?? 0.3), SEUIL = +(Q.get('seuil') ?? 1.2);
+const LEDX = +(Q.get('led') || 1.3), AN = +(Q.get('an') ?? 0.6), HALO = +(Q.get('halo') ?? 0.15), SEUIL = +(Q.get('seuil') ?? 2);
 // normale sûre : celle du modèle, sauf à plus de 45° de sa facette (lames de SketchUp, parfois retournées : traits sombres en
 // éventail sur la façade de C14). Faces verticales : traits horizontaux le long de la face, tirés de cette normale, comme dans
 // brossage() ; dessus : UV de brossage()
@@ -461,7 +461,7 @@ async function load() {
     if (m.map) m.map.anisotropy = MAXA;
     if (n === 'led') LEDS.push(m);
     if (n in EMIS) { if (EMIS[n]) { const [r, g, b, k] = EMIS[n]; m.emissive.setRGB(r, g, b); m.emissiveIntensity = k; } continue; }
-    if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.05; continue; }
+    if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.3; continue; }
     const kind = PHOTO.has(n) ? 'photo' : n === 'sol' ? 'sol' : '';
     if (kind === 'photo') brossage(o.geometry);
     // anisotropie (inox de Blender) : three.js tire son repère tangent des UV0, que la quantification ne garde que sous les textures ;
