@@ -88,6 +88,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
     <button class="chip" id="b-legend">Liste</button>
     <button class="chip on" id="b-edges">Contours</button>
     <button class="chip" id="b-rendu">Rendu réel</button>
+    <button class="chip" id="b-murs" title="Finition des murs : peinture, zellige (3 coloris) ou inox, choix de rendu">Murs : peinture</button>
+    <button class="chip on" id="b-cuis" title="Quatre cuisiniers en service, pour juger des passages">Cuisiniers</button>
     <button class="chip" id="b-gyro" hidden>Gyroscope</button>
     <button class="chip" id="b-install" hidden>Installer</button>
     <button class="chip" id="b-help">Aide</button>
@@ -122,6 +124,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
       <li><b>Repères</b> : codes C, P et L du plan. <b>Liste</b> : le matériel et sa marque, un clic pour s'en approcher.</li>
       <li><b>Film</b> : visite automatique d'une minute, marque et désignation de chaque appareil en sous-titre ; <b>Enregistrer le film</b> en fait une vidéo à envoyer.</li>
       <li><b>Rendu réel</b> (par défaut) : éclairage précalculé et reflets de la cuisine dans l'inox ; un clic passe au rendu dessin avec contours, façon présentation.</li>
+      <li><b>Murs</b> : peinture, zellige 10 × 10 cm (blanc, vert ou bleu) ou inox brossé en panneaux, un clic pour passer de l'un à l'autre ; choix de rendu sur toute la hauteur, pas une prescription.</li>
+      <li><b>Cuisiniers</b> : quatre personnes en service (chef, second, pâtissier, plongeur) pour juger des passages ; un clic les masque.</li>
     </ul>
     <p id="load">Chargement de la cuisine… <b>0 Mo</b></p>
     <button class="primary" id="b-start">Entrer dans la cuisine</button>
@@ -221,7 +225,10 @@ const TILE = 0.3, T0 = P3(ROOM.x0, ROOM.y0);   // carrelage 30 cm : choix de ren
 // brossage du rendu réel : variation de teinte et de rugosité tirées de la carte (±0,5) ; un carreau = 0,5 m
 const VC = +(Q.get('vc') ?? 0.12), VR = +(Q.get('vr') ?? 0.16), ECH = 0.5;
 // inox du rendu réel : reflet de l'acier = KI × teinte du modèle (0,76), rugosité RO, orientation du reflet brossé ROT (choix de rendu)
-const KI = +(Q.get('ki') ?? 0.82), RO = +(Q.get('ro') ?? 0.16), ROT = +(Q.get('rot') ?? Math.PI / 2);
+const KI = +(Q.get('ki') ?? 0.92), RO = +(Q.get('ro') ?? 0.16), ROT = +(Q.get('rot') ?? Math.PI / 2);
+// éclat (choix de rendu) : plafonniers LEDX fois plus forts dans les reflets seulement, brossé d'anisotropie AN, halo HALO des points
+// plus lumineux que SEUIL (rendu réel sur ordinateur, ?halo=0 pour s'en passer)
+const LEDX = +(Q.get('led') || 3), AN = +(Q.get('an') ?? 0.6), HALO = +(Q.get('halo') ?? 0.3), SEUIL = +(Q.get('seuil') ?? 1.2);
 // normale sûre : celle du modèle, sauf à plus de 45° de sa facette (lames de SketchUp, parfois retournées : traits sombres en
 // éventail sur la façade de C14). Faces verticales : traits horizontaux le long de la face, tirés de cette normale, comme dans
 // brossage() ; dessus : UV de brossage()
@@ -233,6 +240,9 @@ vec3 nSure( vec3 n, vec3 p ) {
 const UVB = `
   vec3 nB = nSure( normalize( vWN ), vWP );
   vec2 uvB = abs( nB.y ) > 0.7 ? vUvb : vec2( dot( vWP.xz, normalize( vec2( nB.z, - nB.x ) ) ), vWP.y );`;
+const UVM = `
+  vec3 nM = nSure( normalize( vWN ), vWP );
+  vec2 uvM = abs( nM.y ) > 0.7 ? vWP.xz : vec2( dot( vWP.xz, normalize( vec2( nM.z, - nM.x ) ) ), vWP.y );`;
 const NORM_F = `
   normal = nSure( normal, vViewPosition );
   #ifdef USE_ANISOTROPY
@@ -259,11 +269,35 @@ const DECOR = {
   float brosse = texture2D( tInox, uvB / ${ECH.toFixed(2)} ).r - 0.5;
   diffuseColor.rgb *= 1.0 + ${VC.toFixed(3)} * brosse;`], ['#include <roughnessmap_fragment>', `
   roughnessFactor = clamp( roughnessFactor - ${VR.toFixed(3)} * brosse, 0.05, 1.0 );`]],
+  // murs (bouton « Murs », choix de rendu), en coordonnées monde comme uvB. Zellige 10 × 10 cm (tools/zellige.py, motif de 1,2 m) :
+  // clarté de chaque carreau retouchée par un tirage propre (casse la répétition) ; réel : relief, dévers et rugosité de la carte
+  zellige: () => [['#include <color_fragment>', UVM + `
+  vec4 zN = texture2D( tZelN, uvM / 1.2 );
+  float hz = fract( sin( dot( floor( uvM / 0.1 ), vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
+  diffuseColor.rgb *= texture2D( tZel, uvM / 1.2 ).rgb * ( 0.94 + 0.12 * hz );`], ...(PLAN ? [] : [['#include <roughnessmap_fragment>', `
+  roughnessFactor = zN.b;`], ['#include <normal_fragment_maps>', `
+  {
+    vec3 w = inverseTransformDirection( normal, viewMatrix );
+    vec3 tW = abs( w.y ) > 0.7 ? vec3( 1.0, 0.0, 0.0 ) : normalize( vec3( w.z, 0.0, - w.x ) ), bW = abs( w.y ) > 0.7 ? vec3( 0.0, 0.0, 1.0 ) : vec3( 0.0, 1.0, 0.0 );
+    vec2 nt = zN.rg * 2.0 - 1.0 + 0.04 * ( vec2( fract( hz * 7.13 ), fract( hz * 3.71 ) ) - 0.5 );
+    normal = normalize( ( viewMatrix * vec4( tW * nt.x + bW * nt.y + w * sqrt( max( 1.0 - dot( nt, nt ), 0.0 ) ), 0.0 ) ).xyz );
+  }`]])],
+  // inox en panneaux de 1,25 × 2,5 m brossés en hauteur, même photo et même carte que l'inox des appareils : joints de 3 mm, clarté propre
+  // à chaque panneau
+  murinox: () => [['#include <color_fragment>', UVM + `
+  vec2 pq = uvM / vec2( 1.25, 2.5 ), pe = ( 0.5 - abs( fract( pq ) - 0.5 ) ) * vec2( 1.25, 2.5 );
+  float jd = min( pe.x, pe.y ), jl = 1.0 - smoothstep( 0.0015 - fwidth( jd ), 0.0015 + fwidth( jd ), jd );
+  float hp = fract( sin( dot( floor( pq ), vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );` + (PLAN ? `
+  diffuseColor.rgb *= texture2D( tInox, uvM.yx / 0.6 ).rgb * ( 1.0 - 0.6 * jl );` : `
+  float brosse = texture2D( tInox, uvM.yx / ${ECH.toFixed(2)} ).r - 0.5;
+  diffuseColor.rgb *= ( 1.0 + ${VC.toFixed(3)} * brosse ) * ( 0.97 + 0.06 * hp ) * ( 1.0 - 0.6 * jl );`)], ...(PLAN ? [] : [['#include <roughnessmap_fragment>', `
+  roughnessFactor = clamp( roughnessFactor - ${VR.toFixed(3)} * brosse + 0.25 * jl, 0.05, 1.0 );`]])],
 };
 // reflets projetés sur la boîte de la pièce (correction de parallaxe) : un plan de travail reflète le mur et les plafonniers qui lui
 // font face, pas ce que la sonde voit depuis le centre de la pièce. Boîte = sol × hauteur sous plafond, posée au chargement.
 const SONDE = P3(9800, 8000, 1450);
 const ENVU = { eMin: { value: new THREE.Vector3().setScalar(-1e3) }, eMax: { value: new THREE.Vector3().setScalar(1e3) }, eSonde: { value: SONDE } };
+const ZEL = { tZel: { value: null }, tZelN: { value: null } };   // zellige des murs : couleur du coloris choisi, relief + rugosité
 const BOITE_F = `
 uniform vec3 eMin, eMax, eSonde;
 vec3 boiteEnv( vec3 d ) {
@@ -277,12 +311,12 @@ function lmMat(m, tex, k, kind) {
   if (tex) { m.lightMap = tex; m.lightMapIntensity = k; }
   m.onBeforeCompile = sh => {
     if (tex) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_fragment_maps>', lmChunk(PLAN));
-    const ph = kind === 'photo', V = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;' + (ph ? ' varying vec2 vUvb;' : '');
-    Object.assign(sh.uniforms, ENVU);
-    if (ph) sh.uniforms.tInox = { value: PLAN ? INOX : INOXR };
+    const ph = kind === 'photo', ix = ph || kind === 'murinox', zl = kind === 'zellige', V = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;' + (ph ? ' varying vec2 vUvb;' : '');
+    Object.assign(sh.uniforms, ENVU, zl ? ZEL : {});
+    if (ix) sh.uniforms.tInox = { value: PLAN ? INOX : INOXR };
     sh.vertexShader = sh.vertexShader.replace('#include <common>', V + (ph ? ' attribute vec2 uvb;' : ''))
       .replace('#include <project_vertex>', '#include <project_vertex>' + DECOR_V + (ph ? ' vUvb = uvb;' : ''));
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', V + BOITE_F + NSURE_F + (ph ? ' uniform sampler2D tInox;' : ''))
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', V + BOITE_F + NSURE_F + (ix ? ' uniform sampler2D tInox;' : '') + (zl ? ' uniform sampler2D tZel, tZelN;' : ''))
       .replace('#include <envmap_physical_pars_fragment>', ENV_PARS).replace('#include <normal_fragment_begin>', '$&' + NORM_F);
     if (kind) for (const [at, code] of DECOR[kind]()) sh.fragmentShader = sh.fragmentShader.replace(at, at + code);
   };
@@ -356,6 +390,8 @@ function brossage(g) {
 const PHOTO = new Set(['inox', 'inox_facade', 'inox_sombre']);
 let INOX = null, INOXR = null;   // photo d'inox brossé (dessin), carte de brossage (réel)
 const RENDU = [];   // matériaux réglés selon le rendu : userData.rendu = [réel, dessin], chacun [métal, rugosité, couleur]
+const LEDS = [], MUR = [];   // plafonniers (renforcés dans les reflets), murs (finition au choix)
+let LM = null;   // éclairage cuit [texture, échelle] : repris par les finitions de murs
 // contours noirs « style plan » (comme la présentation SketchUp) : arêtes vives des appareils et des murs
 const EDGE = new THREE.LineBasicMaterial({ color: 0x1d2328, transparent: true, opacity: 0.6 }), edges = [];
 
@@ -408,6 +444,7 @@ async function load() {
     tex = new THREE.Texture(await createImageBitmap(lmB));
     tex.channel = 1; tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(4, MAXA); tex.needsUpdate = true;
   }
+  LM = [tex, man.scale];
   const meshes = []; gltf.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
   gltf.scene.updateMatrixWorld(true);
   for (const o of meshes) flottants(o);
@@ -422,6 +459,7 @@ async function load() {
     const m = o.material, n = m.name.split('.')[0];
     if (CEIL.has(n)) o.userData.ceiling = true;
     if (m.map) m.map.anisotropy = MAXA;
+    if (n === 'led') LEDS.push(m);
     if (n in EMIS) { if (EMIS[n]) { const [r, g, b, k] = EMIS[n]; m.emissive.setRGB(r, g, b); m.emissiveIntensity = k; } continue; }
     if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.05; continue; }
     const kind = PHOTO.has(n) ? 'photo' : n === 'sol' ? 'sol' : '';
@@ -441,7 +479,8 @@ async function load() {
       RENDU.push(m);
     }
     // brossé : reflet étiré en travers des traits (sens de brossage = u de brossage(), d'où le quart de tour)
-    if (m.anisotropy > 0) m.anisotropyRotation = ROT;
+    if (m.anisotropy > 0) { m.anisotropy = AN; m.anisotropyRotation = ROT; }
+    if (n === 'mur') { MUR.push(o); o.userData.peinture = m; }
     lmMat(m, tex, man.scale, kind);
     if (CEIL.has(n) || n === 'sol') continue;
     const e = new THREE.LineSegments(aretes(o.geometry, 25), EDGE);
@@ -451,9 +490,11 @@ async function load() {
   scene.add(gltf.scene); gltf.scene.updateMatrixWorld(true);
   habiller(meshes.filter(o => !/^(vitre|plafond|led|sol)/.test(o.material.name)), await marques);
   setRendu(PLAN, Q.has('contours') ? Q.get('contours') !== '0' : PLAN);   // contours avec le dessin, pas avec le rendu réel
+  if (Q.get('murs')) setMurs(Q.get('murs'));
   for (const [code, b] of Object.entries(rep)) if (NOMS[code]) makeLabel(code, b);
   $('legend-list').innerHTML = Object.keys(NOMS).filter(c => rep[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${MARQUE[c] ? ` <b class="mq">${MARQUE[c]}</b>` : ''}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join('');
   document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
+  brigade();
   ready = true; $('load').hidden = true; $('b-start').disabled = false;
   if (VIEWS[cur]) setView(cur);   // la grille est là : repositionne hors des meubles
   console.log(`[ocean] scène + éclairage ${man.size} px (${man.samples} éch.)`);
@@ -466,10 +507,14 @@ function captureEnv() {
   if (renderer.xr.isPresenting) return;
   const rt = new THREE.WebGLCubeRenderTarget(LOWMEM ? 128 : 256, { type: THREE.HalfFloatType });
   const cc = new THREE.CubeCamera(0.05, 40, rt); cc.position.copy(SONDE); scene.add(cc);
-  const lv = labelGroup.visible, ev = edges.map(e => e.visible);
-  labelGroup.visible = false; edges.forEach(e => e.visible = false);
+  // sans repères, contours ni cuisiniers ; plafond toujours là (caché en vue de dessus) et plafonniers LEDX fois plus forts : l'éclat de l'inox
+  const lv = labelGroup.visible, ev = edges.map(e => e.visible), cv = CUIS.visible, pl = [];
+  labelGroup.visible = CUIS.visible = false; edges.forEach(e => e.visible = false);
+  scene.traverse(o => { if (o.userData.ceiling && !o.visible) { o.visible = true; pl.push(o); } });
+  LEDS.forEach(m => m.emissiveIntensity *= LEDX);
   cc.update(renderer, scene);
-  labelGroup.visible = lv; edges.forEach((e, i) => e.visible = ev[i]); scene.remove(cc);
+  LEDS.forEach(m => m.emissiveIntensity /= LEDX); pl.forEach(o => o.visible = false);
+  labelGroup.visible = lv; CUIS.visible = cv; edges.forEach((e, i) => e.visible = ev[i]); scene.remove(cc);
   const old = scene.environment; scene.environment = pmrem.fromCubemap(rt.texture).texture; rt.dispose(); if (old) old.dispose();
   envPret = true;
 }
@@ -638,6 +683,39 @@ function setRendu(plan, contours = plan) {
   if (!PLAN && !envPret) { captureEnv(); captureEnv(); }
 }
 $('b-rendu').addEventListener('click', () => setRendu(!PLAN));
+// bouton « Murs » (choix de rendu, pas une prescription) : peinture du modèle, zellige 10 × 10 cm toute hauteur en trois coloris, ou inox
+// brossé en panneaux, sur la géométrie et l'éclairage cuit de la peinture ; ?murs=blanc|vert|bleu|inox
+const MURS = { peinture: 'peinture blanche', blanc: 'zellige blanc naturel', vert: 'zellige vert émeraude', bleu: 'zellige bleu pétrole', inox: 'inox brossé en panneaux' };
+const FIN = {}, ZTEX = {};
+let murs = 'peinture';
+function finition(kind) {
+  const z = kind === 'zellige', m = z ? new THREE.MeshStandardMaterial() : new THREE.MeshPhysicalMaterial({ anisotropy: AN });
+  m.userData.rendu = z ? [[0, 0.1, new THREE.Color(1, 1, 1)], [0, 0.6, new THREE.Color(1, 1, 1)]] : [[1, 0.22, new THREE.Color().setScalar(0.76 * KI)], [0, 0.5, new THREE.Color(1, 1, 1)]];
+  const [me, ro, c] = m.userData.rendu[+PLAN]; m.metalness = me; m.roughness = ro; m.color.copy(c);
+  m.polygonOffset = true; m.polygonOffsetFactor = 1; m.polygonOffsetUnits = 1;   // les traits passent devant
+  RENDU.push(m); lmMat(m, LM[0], LM[1], kind); return m;
+}
+async function setMurs(f) {
+  if (!MURS[f] || !MUR.length) return;
+  const kind = f === 'peinture' ? '' : f === 'inox' ? 'murinox' : 'zellige';
+  murs = f; $('b-murs').textContent = 'Murs : ' + (kind === 'zellige' ? 'zellige ' + f : kind ? 'inox' : 'peinture'); $('b-murs').classList.toggle('on', !!kind);
+  if (kind === 'zellige') {
+    const tx = async (n, srgb) => ZTEX[n] ??= await fetchP(`tex/zellige_${n}.jpg`).then(b => createImageBitmap(b, { colorSpaceConversion: srgb ? 'default' : 'none' })).then(b => {
+      const t = new THREE.Texture(b); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.flipY = false; t.anisotropy = MAXA; t.needsUpdate = true; return t;
+    });
+    const t = await Promise.all([tx(f, true), tx('nr', false)]).catch(() => null);
+    if (murs !== f) return;   // un autre clic entre-temps
+    if (!t) { toast('Texture du zellige indisponible'); return; }
+    [ZEL.tZel.value, ZEL.tZelN.value] = t;
+  }
+  // inox : repère de l'anisotropie tiré des UV (cf. load)
+  if (kind === 'murinox') for (const { geometry: g } of MUR) if (!g.attributes.uv) { if (!g.attributes.uvb) brossage(g); g.setAttribute('uv', g.attributes.uvb); }
+  const m = kind ? FIN[kind] ??= finition(kind) : null;
+  for (const o of MUR) { o.material = m || o.userData.peinture; o.material.needsUpdate = true; }
+  toast(`Murs : ${MURS[f]} (choix de rendu)`);
+  if (PLAN) envPret = false; else { captureEnv(); captureEnv(); }   // l'inox des appareils reflète les nouveaux murs
+}
+$('b-murs').addEventListener('click', () => { const k = Object.keys(MURS); setMurs(k[(k.indexOf(murs) + 1) % k.length]); });
 $('b-legend').addEventListener('click', e => { $('legend').hidden = !$('legend').hidden; e.currentTarget.classList.toggle('on', !$('legend').hidden); });
 $('b-help').addEventListener('click', () => { $('help').hidden = false; });
 $('b-start').addEventListener('click', () => { $('help').hidden = true; });
@@ -745,7 +823,7 @@ function filmStart(video) {
   if (video) recStart();
 }
 function filmStop(fini) {
-  if (!film) return; const a = film.avant; film = null;
+  if (!film) return; const a = film.avant; T0C = film.t0; film = null;   // les cuisiniers continuent là où le film les laisse
   document.body.classList.remove('film'); $('film').hidden = true; $('cap').classList.remove('show');
   camera.fov = 64; camera.updateProjectionMatrix(); renderer.toneMappingExposure = a.ev;
   if (a.plan || a.contours) setRendu(a.plan, a.contours);
@@ -811,10 +889,194 @@ $('b-video').addEventListener('click', () => filmStart(true));
 $('b-stop').addEventListener('click', () => filmStop(false));
 canvas.addEventListener('pointerdown', () => { if (film) filmStop(false); });
 
+// ---------- Cuisiniers : chef, second, pâtissier et plongeur en service, pour juger des passages. Mise en scène (pas une organisation
+// de la brigade) en boucle de TC s calée sur les plans du film ; silhouettes simples éclairées par les reflets de la cuisine, trajets au
+// plus court entre les postes, à 25 cm des meubles (freeAt) ----------
+const CUIS = new THREE.Group(); CUIS.visible = Q.get('cuisiniers') !== '0'; scene.add(CUIS);
+$('b-cuis').classList.toggle('on', CUIS.visible);
+$('b-cuis').addEventListener('click', e => { CUIS.visible = !CUIS.visible; e.currentTarget.classList.toggle('on', CUIS.visible); });
+const TC = FILM.reduce((s, sh) => s + (sh.d || DUREE), 0), VM = 1100, ACC = 0.35;   // boucle = durée du film (70,2 s) ; marche 1,1 m/s, élan 0,35 s
+// postes (mm) : où se tenir et vers où regarder, ramenés hors des meubles au chargement
+const POSTES = { C05: [6620, 6907, 5974, 6527], C06: [6905, 6446, 6259, 6066], C07: [7218, 5877, 6572, 5497], C04: [6337, 7369, 5691, 6989],
+  C21: [7300, 6200, 7817, 6335], C14: [9600, 7350, 10555, 7351], ILOT: [9450, 6500, 8228, 6600], PASSE: [8450, 8200, 8450, 8912],
+  C12: [8604, 5250, 8604, 4477], P01: [11900, 9150, 11900, 9900], L01: [8300, 11250, 7700, 11250], L02: [9173, 11450, 9173, 12100],
+  L03: [9900, 11550, 9900, 12100], L04: [9650, 11050, 9650, 10500] };
+// horaires : [départ (s), poste, geste, à la main, porté en marchant] ; 1re ligne = poste au début de la boucle, la dernière y ramène.
+// Calés sur le film : personne entre la caméra et l'appareil filmé (DBG.cadrage), ni trop près d'un autre (DBG.ecarts)
+const BRIGADE = [
+  { nom: 'chef', coiffe: 'toque', veste: 0xf4f4f0, tablier: 0x24272b, pantalon: 0x2a2e35, peau: 0xe8b996, cheveux: 0x3b2a1e, plan: [[0, 'C05', 'feu', 'poele'],
+    [9.5, 'C06', 'plancha', 'spatule'], [16.4, 'C07', 'plancha', 'spatule'], [26.5, 'C21', 'tiroir'], [33, 'C05', 'feu', 'poele'], [53, 'C04', 'couper', 'couteau'], [61, 'C05', 'feu', 'poele']] },
+  { nom: 'second', coiffe: 'casquette', veste: 0xf4f4f0, tablier: 0x2d4560, pantalon: 0x34383f, peau: 0xb07a55, cheveux: 0x15110e, plan: [[0, 'ILOT', 'dresser'],
+    [0.2, 'PASSE', 'dresser', '', 'plateau'], [12, 'C14', 'tiroir'], [22, 'C12', 'four'], [31, 'ILOT', 'couper', 'couteau'], [50, 'C12', 'four'], [56, 'ILOT', 'dresser']] },
+  { nom: 'pâtissier', coiffe: 'calot', veste: 0xf4f4f0, tablier: 0xeceae4, pantalon: 0x2f3338, peau: 0xf0c9aa, cheveux: 0x7a5a3a, plan: [[0, 'P01', 'patisser'],
+    [20.4, 'PASSE', 'dresser', '', 'plateau'], [29, 'P01', 'patisser'], [59.5, 'PASSE', 'dresser', '', 'plateau'], [66, 'P01', 'patisser']] },
+  { nom: 'plongeur', coiffe: 'bonnet', veste: 0x7d868f, manches: 'courtes', tablier: 0x24577f, pantalon: 0x2c3036, peau: 0x7a5038, cheveux: 0x111111, gants: 0xe3bf3c,
+    plan: [[0, 'L02', 'capot'], [9, 'L03', 'dresser', '', 'casier'], [20, 'L04', 'ranger', '', 'pile'], [30, 'L01', 'plonge'], [46, 'L02', 'capot', '', 'casier'],
+      [55, 'L01', 'plonge'], [66, 'L02', 'capot', '', 'casier']] },
+];
+// gestes : [torse (penché < 0), tête (baissée < 0), bras gauche : en avant, vers l'intérieur, coude, bras droit : idem, cuisses, genoux] en
+// radians au temps t (s) ; mains vers 1 m de haut et 40 cm devant soi au plan de travail
+const GESTES = {
+  feu: t => { const k = Math.max(0, Math.sin(t * 4.2)) ** 3; return [-0.12, -0.42, 0.42 + 0.15 * k, 0.12, 0.99 + 0.2 * k, 0.35, 0.25, 0.8, 0, 0]; },   // coups de poêle
+  plancha: t => [-0.15, -0.48, 0.35, 0.3, 0.7, 0.42 + 0.08 * Math.sin(t * 3.1), 0.12 + 0.18 * Math.sin(t * 1.55), 0.85 + 0.12 * Math.sin(t * 3.1), 0, 0],
+  couper: t => { const k = Math.max(0, Math.sin(t * 8.5)); return [-0.24, -0.6, 0.45, 0.38, 0.85, 0.5 + 0.06 * k, 0.25, 0.75 + 0.22 * k, 0, 0]; },
+  dresser: t => [-0.26, -0.55, 0.5 + 0.06 * Math.sin(t * 1.3), 0.3, 0.78, 0.5 + 0.08 * Math.sin(t * 1.7 + 1), 0.28 + 0.06 * Math.sin(t * 2.1), 0.78 + 0.1 * Math.sin(t * 1.7), 0, 0],
+  tiroir: t => [-0.65, -0.15, 0.6, 0.05, 0.3, 1 + 0.12 * Math.sin(t * 1.3), 0.1, 0.25, 0.6, -1.1],   // accroupi devant un tiroir bas
+  plonge: t => [-0.32, -0.55, 0.42 + 0.1 * Math.sin(t * 3), 0.32, 0.4 + 0.15 * Math.sin(t * 3 + 1), 0.42 + 0.1 * Math.sin(t * 3 + 2), 0.32, 0.4 + 0.15 * Math.sin(t * 3), 0, 0],
+  ranger: t => [0.03, 0.2, 1.2 + 0.4 * Math.sin(t * 1.2), 0.12, 0.5, 1.4 + 0.5 * Math.sin(t * 1.2 + 2), 0.12, 0.6, 0, 0],   // sur les étagères
+  capot: t => { const k = 0.5 - 0.5 * Math.cos(t * 0.9); return [-0.08, -0.1 + 0.25 * k, 0.68 + 0.7 * k, 0.12, 0.4 - 0.2 * k, 0.68 + 0.7 * k, 0.12, 0.4 - 0.2 * k, 0, 0]; },   // lève et baisse le capot
+  patisser: t => { const k = Math.sin(t * 2.4); return [-0.28 - 0.05 * k, -0.5, 0.5 + 0.18 * k, 0.3, 0.75 - 0.15 * k, 0.5 + 0.18 * k, 0.3, 0.75 - 0.15 * k, 0, 0]; },   // rouleau
+  four: t => [-0.06, -0.05, 0.15, 0.05, 0.3, 1.05 + 0.15 * Math.sin(t * 0.8), 0.1, 0.3, 0, 0],
+};
+const geste = (g, t) => { const p = GESTES[g](t); return [...p.slice(0, 8), p[8], p[9], p[8], p[9]]; };
+// marche : pas de ~65 cm, jambes et bras opposés, amplitude selon la vitesse relative v ; bras en avant, coudes pliés, si l'on porte
+function marche(phi, v, porte) {
+  const s = Math.sin(phi), c = Math.cos(phi), A = 0.38 * v;
+  return [-0.04 * v, -0.08, porte ? 0.3 : -0.3 * s * v, 0.05, porte ? 1.45 : 0.25, porte ? 0.3 : 0.3 * s * v, 0.05, porte ? 1.45 : 0.25,
+    A * s, -(0.65 * Math.max(0, c) + 0.05) * v, -A * s, -(0.65 * Math.max(0, -c) + 0.05) * v];
+}
+// silhouettes : primitives partagées, matériaux standard éclairés par les reflets de la cuisine (scene.environment), atténués (?ecl=) :
+// la capture force les plafonniers (LEDX) et les blancs des vestes saturaient
+const ECL = +(Q.get('ecl') || 0.25), MATS = {}, GEOS = {};
+const mat = (c, r = 0.8, me = 0) => MATS[[c, r, me]] ??= new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: me, envMapIntensity: ECL });
+const geo = (k, f) => GEOS[k] ??= f(), capsule = (r, l) => geo('c' + [r, l], () => new THREE.CapsuleGeometry(r, l, 4, 12));
+const boite = (x, y, z) => geo('b' + [x, y, z], () => new THREE.BoxGeometry(x, y, z)), cyl = (a, b, h) => geo('y' + [a, b, h], () => new THREE.CylinderGeometry(a, b, h, 20));
+const boule = (r, t = Math.PI) => geo('s' + [r, t], () => new THREE.SphereGeometry(r, 16, 10, 0, 2 * Math.PI, 0, t));
+const grp = (p, x = 0, y = 0, z = 0) => { const o = new THREE.Group(); o.position.set(x, y, z); p.add(o); return o; };
+const piece = (p, g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); p.add(o); return o; };
+const TACHE = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4, map: (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(0,0,0,.5)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })() });
+function bonhomme(b) {
+  const root = new THREE.Group(), corps = grp(root), bassin = grp(corps, 0, 0.92), torse = grp(bassin), os = { corps, torse };
+  const peau = mat(b.peau, 0.6), veste = mat(b.veste, 0.85), pant = mat(b.pantalon, 0.85), blanc = mat(0xfafaf7, 0.9);
+  piece(bassin, capsule(0.15, 0.06), pant).scale.z = 0.75;
+  for (const [s, x] of [['g', -1], ['d', 1]]) {
+    const cuisse = grp(bassin, 0.095 * x), genou = grp(cuisse, 0, -0.45), bras = grp(torse, 0.205 * x, 0.5), coude = grp(bras, 0, -0.3), main = grp(coude, 0, -0.28);
+    piece(cuisse, capsule(0.068, 0.31), pant, 0, -0.225); piece(genou, capsule(0.055, 0.32), pant, 0, -0.215);
+    const pied = grp(genou, 0, -0.435, -0.05), sem = piece(pied, capsule(0.045, 0.17), mat(0x17191c, 0.5)); sem.rotation.x = Math.PI / 2; sem.scale.set(1.1, 1, 0.75);
+    piece(bras, capsule(0.054, 0.19), veste, 0, -0.15); piece(coude, capsule(0.045, 0.19), b.manches ? peau : veste, 0, -0.135);
+    piece(main, boule(0.048), b.gants ? mat(b.gants, 0.5) : peau).scale.set(0.8, 1.15, 1);
+    os[s] = { cuisse, genou, pied, bras, coude, main };
+  }
+  piece(torse, capsule(0.17, 0.28), veste, 0, 0.3).scale.z = 0.7;
+  piece(torse, boite(0.34, 0.7, 0.012), mat(b.tablier, 0.9), 0, 0.07, -0.124);   // tablier, de la poitrine à mi-cuisse
+  const tete = os.tete = grp(torse, 0, 0.57);
+  piece(tete, cyl(0.05, 0.055, 0.1), peau, 0, 0.02); piece(tete, boule(0.1), peau, 0, 0.14).scale.set(0.9, 1.12, 1);
+  piece(tete, boule(0.022), peau, 0, 0.13, -0.095);   // nez : sens du regard
+  for (const x of [-0.034, 0.034]) piece(tete, boule(0.011), mat(0x1a1410, 0.4), x, 0.16, -0.083);
+  const ch = piece(tete, boule(0.104, 1.75), mat(b.cheveux, 0.9), 0, 0.15, 0.012); ch.scale.set(0.92, 1.1, 1.02); ch.rotation.x = 0.45;
+  if (b.coiffe === 'toque') { piece(tete, cyl(0.1, 0.098, 0.07), blanc, 0, 0.26); piece(tete, cyl(0.125, 0.105, 0.2), blanc, 0, 0.39); piece(tete, boule(0.128), blanc, 0, 0.49).scale.y = 0.45; }
+  else if (b.coiffe === 'calot') { piece(tete, cyl(0.104, 0.1, 0.1), blanc, 0, 0.27); piece(tete, boule(0.106), blanc, 0, 0.32).scale.y = 0.5; }
+  else { const c = mat(b.coiffe === 'casquette' ? 0xf2f2ef : 0x1f2f45, 0.85); piece(tete, boule(0.108, 1.6), c, 0, 0.17); if (b.coiffe === 'casquette') piece(tete, boite(0.15, 0.008, 0.08), c, 0, 0.18, -0.12); }
+  piece(root, geo('ombre', () => new THREE.PlaneGeometry(0.8, 0.8)), TACHE, 0, 0.004).rotation.x = -Math.PI / 2;
+  // accessoires : en main (repère de la main remis à plat pour le geste qui s'en sert) ou portés devant soi
+  const acier = mat(0xc4c8cc, 0.32, 0.9), fonte = mat(0x2e3033, 0.45, 0.7), noir = mat(0x1b1d20, 0.5), porc = mat(0xf6f6f2, 0.3), acc = {};
+  const A = {
+    poele: () => { const g = grp(os.g.main); g.rotation.x = -1.29; piece(g, cyl(0.13, 0.11, 0.05), fonte, 0, 0.02, -0.3); piece(g, boite(0.024, 0.018, 0.2), fonte, 0, 0.01, -0.1); return g; },
+    spatule: () => { const g = grp(os.d.main); g.rotation.x = -1.12; piece(g, boite(0.016, 0.016, 0.2), noir, 0, -0.02, -0.08).rotation.x = 0.4; piece(g, boite(0.085, 0.004, 0.1), acier, 0, -0.07, -0.21); return g; },
+    couteau: () => { const g = grp(os.d.main); g.rotation.x = -1.01; piece(g, boite(0.02, 0.026, 0.11), noir); piece(g, boite(0.003, 0.035, 0.2), acier, 0, -0.005, -0.15); return g; },
+    plateau: () => { const g = grp(torse, 0, 0.29, -0.42); piece(g, boite(0.325, 0.022, 0.53), acier); for (const z of [-0.12, 0.12]) piece(g, cyl(0.1, 0.08, 0.02), porc, 0, 0.021, z); return g; },
+    casier: () => { const g = grp(torse, 0, 0.31, -0.45); piece(g, boite(0.5, 0.1, 0.5), mat(0x35506a, 0.7)); return g; },
+    pile: () => { const g = grp(torse, 0, 0.34, -0.38); piece(g, cyl(0.13, 0.11, 0.14), porc); return g; },
+  };
+  for (const e of b.plan) for (const k of e.slice(3)) if (k && !acc[k]) acc[k] = A[k]();
+  return { root, os, acc };
+}
+function articuler({ os }, P) {
+  os.torse.rotation.x = P[0]; os.tete.rotation.x = P[1];
+  os.g.bras.rotation.set(P[2], 0, P[3]); os.g.coude.rotation.x = P[4]; os.d.bras.rotation.set(P[5], 0, -P[6]); os.d.coude.rotation.x = P[7];
+  for (const [o, c, g] of [[os.g, P[8], P[9]], [os.d, P[10], P[11]]]) { o.cuisse.rotation.x = c; o.genou.rotation.x = g; o.pied.rotation.x = -(c + g); }
+  const jambe = (c, g) => 0.45 * Math.cos(c) + 0.43 * Math.cos(c + g);
+  os.corps.position.y = Math.max(jambe(P[8], P[9]), jambe(P[10], P[11])) - 0.88;   // le pied d'appui reste au sol
+}
+// trajet le plus court (mm) : A* sur une grille de 10 cm de la pièce (case libre = freeAt), puis en ligne droite tant que le passage reste libre
+let LIBRE = null;
+const NX = Math.ceil((ROOM.x1 - ROOM.x0) / 100), NY = Math.ceil((ROOM.y1 - ROOM.y0) / 100), centre = k => [ROOM.x0 + (k % NX + 0.5) * 100, ROOM.y0 + (Math.floor(k / NX) + 0.5) * 100];
+const tasPush = (h, e) => { h.push(e); for (let i = h.length - 1, p; i > 0 && h[p = (i - 1) >> 1][0] > h[i][0]; i = p) [h[p], h[i]] = [h[i], h[p]]; };
+const tasPop = h => { const r = h[0], e = h.pop(); if (h.length) { h[0] = e; for (let i = 0; ;) { const l = 2 * i + 1, m = l + 1 < h.length && h[l + 1][0] < h[l][0] ? l + 1 : l; if (l >= h.length || h[m][0] >= h[i][0]) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return r; };
+function chemin(a, b) {
+  if (!LIBRE) { LIBRE = new Uint8Array(NX * NY); for (let k = 0; k < NX * NY; k++) LIBRE[k] = freeAt(...centre(k)) ? 1 : 0; }
+  const id = ([X, Y]) => clamp(Math.floor((X - ROOM.x0) / 100), 0, NX - 1) + NX * clamp(Math.floor((Y - ROOM.y0) / 100), 0, NY - 1), k0 = id(a), k1 = id(b);
+  if (k0 === k1) return [a, b];
+  const g = new Float32Array(NX * NY).fill(Infinity), de = new Int32Array(NX * NY).fill(-1), q = [];
+  const hx = k => { const dx = Math.abs(k % NX - k1 % NX), dy = Math.abs(Math.floor(k / NX) - Math.floor(k1 / NX)); return Math.max(dx, dy) + 0.414 * Math.min(dx, dy); };
+  g[k0] = 0; tasPush(q, [hx(k0), k0]);
+  while (q.length) {
+    const [f, k] = tasPop(q); if (k === k1) break;
+    if (f > g[k] + hx(k) + 1e-6) continue;
+    const i = k % NX, j = (k - i) / NX;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const i2 = i + di, j2 = j + dj, k2 = j2 * NX + i2;   // diagonale : sans couper le coin d'un meuble
+      if ((!di && !dj) || i2 < 0 || j2 < 0 || i2 >= NX || j2 >= NY || (!LIBRE[k2] && k2 !== k1) || (di && dj && !(LIBRE[j * NX + i2] && LIBRE[j2 * NX + i]))) continue;
+      const c = g[k] + (di && dj ? 1.414 : 1);
+      if (c < g[k2]) { g[k2] = c; de[k2] = k; tasPush(q, [c + hx(k2), k2]); }
+    }
+  }
+  if (de[k1] < 0) { console.warn('[ocean] pas de passage', a, b); return [a, b]; }
+  const pts = [b]; for (let k = de[k1]; k !== k0; k = de[k]) pts.unshift(centre(k)); pts.unshift(a);
+  const vu = (p, r) => { const n = Math.ceil(Math.hypot(r[0] - p[0], r[1] - p[1]) / 50); for (let i = 1; i < n; i++) if (!freeAt(p[0] + (r[0] - p[0]) * i / n, p[1] + (r[1] - p[1]) * i / n)) return false; return true; };
+  const out = [a];
+  for (let i = 0; i < pts.length - 1;) { let j = pts.length - 1; while (j > i + 1 && !vu(pts[i], pts[j])) j--; out.push(pts[j]); i = j; }
+  return out;
+}
+// horaire → segments : au poste [t0, t1, poste, geste, main], ou en marche (profil trapèze : élan, 1,1 m/s, arrêt)
+let BR = [], T0C = performance.now();
+function brigade() {
+  const P = {};
+  for (const [k, [X, Y, tX, tY]] of Object.entries(POSTES)) { const [x, y] = nearestFree(X, Y); P[k] = [x, y, yawTo(x, y, tX, tY)]; }
+  BR = BRIGADE.map((b, n) => {
+    const c = bonhomme(b), seg = []; let at = P[b.plan[0][1]], t = 0, g = b.plan[0];
+    for (const e of b.plan.slice(1)) {
+      seg.push({ t0: t, t1: e[0], poste: at, geste: g[2], main: g[3] });
+      const pts = chemin(at, P[e[1]]), cum = [0];
+      for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+      const L = cum.at(-1), ta = Math.min(ACC, L / VM), w = L / VM + ta;
+      seg.push({ t0: e[0], t1: e[0] + w, pts, cum, L, ta, w, pas: L / Math.max(1, Math.round(L / 650)), de: at, a: P[e[1]], g0: g[2], g1: e[2], porte: e[4] });
+      at = P[e[1]]; t = e[0] + w; g = e;
+    }
+    seg.push({ t0: t, t1: TC + 1, poste: at, geste: g[2], main: g[3] });
+    if (t > TC) console.warn('[ocean]', b.nom, 'revient après la fin de la boucle', t.toFixed(1));
+    CUIS.add(c.root); return { ...c, nom: b.nom, seg, ph: n * 1.7 };
+  });
+}
+const tourne = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;   // de l'angle a vers b, fraction k
+function etat(c, t) {   // position (mm), cap, pose et accessoires du cuisinier c au temps t de la boucle
+  const s = c.seg.find(s => t < s.t1);
+  if (s.poste) return { p: s.poste, h: s.poste[2], pose: geste(s.geste, t + c.ph), main: s.main };
+  const u = t - s.t0, { L, ta, w, cum, pts } = s;
+  const d = u < ta ? VM * u * u / (2 * ta) : u < w - ta ? VM * ta / 2 + VM * (u - ta) : L - VM * (w - u) ** 2 / (2 * ta);
+  const v = u < ta ? u / ta : u < w - ta ? 1 : (w - u) / ta;   // vitesse relative
+  const sur = x => { let i = 1; while (i < cum.length - 1 && cum[i] < x) i++; const a = pts[i - 1], b = pts[i], k = (x - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1); return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; };
+  const p = sur(d), q = sur(Math.min(L, d + 350));   // regard 35 cm devant soi ; au départ et à l'arrivée, vers le poste
+  const h = tourne(s.a[2], tourne(s.de[2], Math.hypot(q[0] - p[0], q[1] - p[1]) > 1 ? yawTo(p[0], p[1], q[0], q[1]) : s.a[2], clamp(u / 0.5, 0, 1)), clamp((w - u) / 0.6, 0, 1));
+  const m = marche(Math.PI * d / s.pas, v, !!s.porte), pose = u < w / 2 ? mix(geste(s.g0, t + c.ph), m, clamp(u / 0.45, 0, 1)) : mix(geste(s.g1, t + c.ph), m, clamp((w - u) / 0.45, 0, 1));
+  return { p, h, pose, porte: s.porte };
+}
+function animer(t) {   // t (s) : temps du film, ou de la visite (en boucle) ; cuisinier caché si la caméra est dedans
+  if (!CUIS.visible || !BR.length) return;
+  t = (t % TC + TC) % TC;
+  for (const c of BR) {
+    const e = etat(c, t);
+    c.root.position.set(e.p[0] / 1000, 0, -e.p[1] / 1000); c.root.rotation.y = e.h; articuler(c, e.pose);
+    for (const [k, o] of Object.entries(c.acc)) o.visible = k === e.main || k === e.porte;
+    c.root.visible = planMode || Math.hypot(c.root.position.x - pos.x, c.root.position.z - pos.z) > 0.45;
+  }
+}
+
 // ---------- Boucle ----------
 const clock = new THREE.Clock(), vdir = new THREE.Vector3();
 let snapSize = null;
-function resize() { const w = snapSize ? snapSize[0] : innerWidth, h = snapSize ? snapSize[1] : innerHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (planMode) VIEWS.plan(); } }
+// halo des points brillants (rendu réel sur ordinateur) : scène en flottants, halo, puis tons et sRGB (OutputPass) ; dessin et casque : rendu direct
+let composer = null;
+if (!isTouch && HALO > 0) Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass'].map(f => import(`three/addons/postprocessing/${f}.js`)))
+  .then(([{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }]) => {
+    const c = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+    c.addPass(new RenderPass(scene, camera)); c.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), HALO, 0.45, SEUIL)); c.addPass(new OutputPass());
+    const s = renderer.getSize(new THREE.Vector2()); c.setPixelRatio(renderer.getPixelRatio()); c.setSize(s.x, s.y); composer = c;
+  }).catch(e => console.warn('[ocean] halo indisponible', e));
+const draw = () => composer && !PLAN && !planMode && !renderer.xr.isPresenting ? composer.render() : renderer.render(scene, camera);   // vue de dessus : sans halo (reflets des plafonniers au sol)
+function resize() { const w = snapSize ? snapSize[0] : innerWidth, h = snapSize ? snapSize[1] : innerHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); composer?.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); if (planMode) VIEWS.plan(); } }
 addEventListener('resize', resize);
 function move(dx, dz) {   // glisse le long des obstacles
   const X = pos.x * 1000, Y = -pos.z * 1000, nX = X + dx * 1000, nY = Y - dz * 1000;
@@ -847,7 +1109,8 @@ function tick() {
     gE.set(b, a, -g, 'YXZ'); gq.setFromEuler(gE); gq.multiply(q1); gq.multiply(q0.setFromAxisAngle(zee, -orient));
     camera.quaternion.copy(gq); pitchObj.rotation.x = 0; rig.rotation.y = alphaOffset;
   } else { rig.rotation.y = yaw; pitchObj.rotation.x = xr ? 0 : pitch; }
-  renderer.render(scene, camera);
+  animer(((performance.now() - (film ? film.t0 : T0C)) / 1000));
+  draw();
   if (rec && film) recFrame();
 }
 resize(); setView('chef');
@@ -855,13 +1118,22 @@ renderer.setAnimationLoop(tick);
 load().catch(e => { console.error(e); $('load').textContent = 'Chargement impossible : ' + e.message; toast('Chargement impossible : ' + e.message); });
 window.DBG = { scene, renderer, camera, THREE, captureEnv, goTo, freeAt, blocked, pos: () => [Math.round(pos.x * 1000), Math.round(-pos.z * 1000)],
   look: (X, Y, tX, tY, p = -0.12) => stand(X, Y, tX, tY, p),
+  // cuisiniers (mm) : écart mini de chaque paire sur la boucle ; par plan du film, cuisinier le plus près de la caméra et écart mini à
+  // l'axe de visée d'un cuisinier placé entre la caméra et l'appareil filmé (hors des 80 derniers cm : celui qui y travaille)
+  ecarts: (dt = 0.1) => { const m = {}; for (let t = 0; t < TC; t += dt) { const e = BR.map(c => etat(c, t).p); BR.forEach((a, i) => BR.forEach((b, j) => { if (j <= i) return; const d = Math.hypot(e[i][0] - e[j][0], e[i][1] - e[j][1]), k = a.nom + '-' + b.nom; if (!m[k] || d < m[k][0]) m[k] = [d, t]; })); } return Object.entries(m).map(([k, [d, t]]) => `${k} ${Math.round(d)}@${t.toFixed(1)}`).join(' '); },
+  cadrage: () => { let t0 = 0; return FILM.map(sh => { const p = prise(sh), d = sh.d || DUREE; let cam = 1e9, qui = '', gene = 1e9, gq = '';
+    if (p) for (let k = 0; k <= 1.001; k += 0.05) { const e = 0.5 - 0.5 * Math.cos(Math.PI * k), P = mix(p.A, p.B, e), T = mix(p.TA, p.TB, e), L = Math.hypot(T[0] - P[0], T[1] - P[1]) || 1;
+      for (const c of BR) { const q = etat(c, t0 + k * d).p, dc = Math.hypot(q[0] - P[0], q[1] - P[1]), s = ((q[0] - P[0]) * (T[0] - P[0]) + (q[1] - P[1]) * (T[1] - P[1])) / L, n = Math.abs((q[0] - P[0]) * (T[1] - P[1]) - (q[1] - P[1]) * (T[0] - P[0])) / L;
+        if (dc < cam) { cam = dc; qui = c.nom; } if (s > 0 && s < L - 800 && n < gene) { gene = n; gq = c.nom; } } }
+    t0 += d; return `${sh.c || sh.v} ${Math.round(cam)} ${qui} ${gene < 1e9 ? Math.round(gene) + ' ' + gq : '-'}`; }).join(' | '); },
+  brigade: () => BR.map(c => c.nom + ' ' + c.seg.filter(s => s.pts).map(s => `${s.t0}→${s.t1.toFixed(1)}:${Math.round(s.L)}`).join(',')).join(' | '),
   snap: (w = 1280, h = 720, q = 0.9) => { snapSize = [w, h]; tick(); const d = canvas.toDataURL('image/jpeg', q); snapSize = null; return d; },
   film: filmStart, prises: () => FILM.map(sh => { const p = prise(sh); return (sh.c || sh.v) + (p && p.A ? ' ' + [...p.A, ...p.B].map(Math.round).join(',') : ''); }).join(' | '),
   planche: (W = 320, H = 180, pl = FILM.map(prise), k = 0.5) => {   // planche contact : une image (milieu par défaut) de chaque plan du film, en grille
     const cv = document.createElement('canvas'), g = cv.getContext('2d'), ev = renderer.toneMappingExposure;
     cv.width = W * 4; cv.height = H * Math.ceil(pl.length / 4); snapSize = [W * 2, H * 2]; resize(); labelGroup.visible = false; renderer.toneMappingExposure *= EV_FILM;
     scene.traverse(o => { if (o.userData.ceiling) o.visible = true; });
-    pl.forEach((p, i) => { if (!p) return; camera.fov = p.fov || FOV_FILM; camera.updateProjectionMatrix(); filmPose(p, k); rig.rotation.y = yaw; pitchObj.rotation.x = pitch; renderer.render(scene, camera); g.drawImage(canvas, (i % 4) * W, Math.floor(i / 4) * H, W, H); });
+    pl.forEach((p, i) => { if (!p) return; camera.fov = p.fov || FOV_FILM; camera.updateProjectionMatrix(); filmPose(p, k); rig.rotation.y = yaw; pitchObj.rotation.x = pitch; animer(FILM.slice(0, i).reduce((s, sh) => s + (sh.d || DUREE), 0) + k * (FILM[i].d || DUREE)); draw(); g.drawImage(canvas, (i % 4) * W, Math.floor(i / 4) * H, W, H); });
     snapSize = null; camera.fov = 64; resize(); camera.updateProjectionMatrix(); renderer.toneMappingExposure = ev;
     const im = document.createElement('img'); im.src = cv.toDataURL('image/jpeg', 0.85); im.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1000';
     im.onclick = () => im.remove(); document.body.append(im); return pl.length;
