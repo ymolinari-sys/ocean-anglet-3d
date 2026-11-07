@@ -41,6 +41,20 @@ button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:tran
 #note{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);font-size:10.5px;color:var(--muted);max-width:34vw;text-align:right;pointer-events:none}
 #toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--fg);color:var(--bg);font-size:12.5px;padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:calc(100vw - 32px)}
 #toast.show{opacity:.95}
+#legend li b.mq{font:700 9.5px var(--font);letter-spacing:.07em;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:3px;white-space:nowrap;vertical-align:1px}
+/* film : bandes noires, sous-titre (marque + désignation), fondu entre les plans */
+#film{position:fixed;inset:0;pointer-events:none;z-index:5}
+#film::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.38) 100%)}
+#film .bar{position:absolute;left:0;right:0;height:9vh;background:#000}
+#film .bar.t{top:0} #film .bar.b{bottom:0}
+#fade{position:absolute;inset:0;background:#000;opacity:1}
+#cap{position:absolute;left:max(20px,4vw);bottom:calc(9vh + 18px);max-width:min(560px,calc(100vw - 40px));color:#fff;background:rgba(10,14,18,.58);backdrop-filter:blur(6px);border-radius:10px;padding:10px 16px 11px;opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s}
+#cap.show{opacity:1;transform:none}
+#cap small{display:block;font:600 11px var(--font);letter-spacing:.12em;opacity:.75}
+#cap b{display:block;font:700 clamp(22px,3.6vw,38px)/1.05 var(--font);letter-spacing:.07em}
+#cap span{display:block;font:500 clamp(13px,1.6vw,17px)/1.3 var(--font);margin-top:4px}
+#b-stop{position:absolute;right:14px;top:calc(9vh + 12px);pointer-events:auto}
+body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,body.film #vrwrap,body.film #toast{display:none!important}
 [hidden]{display:none!important}
 #help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,22,.45);padding:16px;overflow:auto;box-sizing:border-box}
 #help .card{margin:auto;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:18px 20px;max-width:430px;width:100%;box-sizing:border-box}
@@ -68,6 +82,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
     <button class="chip" data-view="patisserie">Pâtisserie</button>
     <button class="chip" data-view="laverie">Laverie</button>
     <button class="chip" data-view="plan">Plan</button>
+    <button class="chip" id="b-film">▶ Film</button>
+    <button class="chip" id="b-video" hidden title="Joue le film et l'enregistre en vidéo (fichier à envoyer)">Enregistrer le film</button>
     <button class="chip" id="b-labels">Repères</button>
     <button class="chip" id="b-legend">Liste</button>
     <button class="chip on" id="b-edges">Contours</button>
@@ -89,6 +105,11 @@ button.primary:disabled{opacity:.55;cursor:progress}
 <div id="note">Image de synthèse non contractuelle · implantation d'après plan ZANUSSI du 04/11/26</div>
 <div id="toast" role="status"></div>
 <div id="vrwrap"></div>
+<div id="film" hidden>
+  <div id="fade"></div><div class="bar t"></div><div class="bar b"></div>
+  <div id="cap"><small id="cap-c"></small><b id="cap-m"></b><span id="cap-n"></span></div>
+  <button class="chip" id="b-stop">Arrêter le film</button>
+</div>
 
 <div id="help">
   <div class="card">
@@ -98,7 +119,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
       <li><b>Regarder</b> : glisser le doigt ou la souris.</li>
       <li><b>Se déplacer</b> : joystick en bas à gauche sur téléphone, <kbd>Z</kbd> <kbd>Q</kbd> <kbd>S</kbd> <kbd>D</kbd> ou flèches sur ordinateur (<kbd>Maj</kbd> pour aller plus vite).</li>
       <li><b>Points de vue</b> : Chef (devant la ligne de cuisson), Entrée, Pâtisserie, Laverie, Plan.</li>
-      <li><b>Repères</b> : codes C, P et L du plan. <b>Liste</b> : le matériel, un clic pour s'en approcher.</li>
+      <li><b>Repères</b> : codes C, P et L du plan. <b>Liste</b> : le matériel et sa marque, un clic pour s'en approcher.</li>
+      <li><b>Film</b> : visite automatique d'une minute, marque et désignation de chaque appareil en sous-titre ; <b>Enregistrer le film</b> en fait une vidéo à envoyer.</li>
       <li><b>Rendu réel</b> (par défaut) : éclairage précalculé et reflets de la cuisine dans l'inox ; un clic passe au rendu dessin avec contours, façon présentation.</li>
     </ul>
     <p id="load">Chargement de la cuisine… <b>0 Mo</b></p>
@@ -141,15 +163,19 @@ const P3 = (X, Y, Z = 0) => new THREE.Vector3(X / 1000, Z / 1000, -Y / 1000);
 const ROOM = { x0: 4542, x1: 15276, y0: 3810, y1: 12690 };
 
 const NOMS = {
-  C01: 'Four MY CHEF sur la cellule', C02: 'Cellule de refroidissement', C03: 'Soubassement réfrigéré CODIGEL',
-  C04: 'Plan neutre 400', C05: 'Feux vifs 800', C06: 'Fry-top 400', C07: 'Fry-top 800', C08: 'Friteuse 15 L', C09: 'Friteuse 15 L',
-  C10: 'Étagère barreaudée', C11: 'Table avec bac et robinet', C12: 'Four MY CHEF Cook Master 6 GN 1/1 + hotte à condensation',
-  C13: '3 friteuses à poser FIAMMA', C14: 'Meuble réfrigéré négatif 4 tiroirs CODIGEL', C15: 'Meuble bas traversant', C16: 'Étagère chauffante', C17: 'Bain-marie',
-  C18: 'Meuble réfrigéré 6 tiroirs CODIGEL (îlot)', C19: 'Présentoir réfrigéré ATOSA', C20: 'Étagère suspendue',
-  C21: 'Meuble réfrigéré 6 tiroirs CODIGEL (îlot)', P01: 'Meuble réfrigéré 6 tiroirs avec bac CODIGEL', P02: 'Étagère murale', P03: 'Conservateur', P05: 'Table roulante',
-  L01: 'Plonge + douchette', L02: 'Lave-vaisselle à capot LAMBER', L03: 'Table de sortie', L04: 'Rayonnage Fermostock',
+  C01: 'Four sur la cellule', C02: 'Cellule de refroidissement', C03: 'Soubassement réfrigéré GN 1/1',
+  C04: 'Plan neutre 400', C05: 'Fourneau 4 feux vifs 800', C06: 'Fry-top 400', C07: 'Fry-top 800', C08: 'Friteuse électrique 15 L', C09: 'Friteuse électrique 15 L',
+  C10: 'Étagère barreaudée', C11: 'Table avec bac et robinet', C12: 'Four Cook Master 6 GN 1/1 + hotte à condensation',
+  C13: '3 friteuses à poser', C14: 'Meuble réfrigéré négatif 4 tiroirs', C15: 'Meuble bas traversant', C16: 'Étagère chauffante', C17: 'Bain-marie GN 2/1',
+  C18: 'Meuble réfrigéré 6 tiroirs (îlot)', C19: 'Présentoir réfrigéré à ingrédients', C20: 'Étagère suspendue',
+  C21: 'Meuble réfrigéré 6 tiroirs (îlot)', P01: 'Meuble réfrigéré 6 tiroirs avec bac', P02: 'Étagère murale', P03: 'Conservateur', P05: 'Table roulante',
+  L01: 'Plonge + douchette', L02: 'Lave-vaisselle à capot L305-CV', L03: 'Table de sortie', L04: 'Rayonnage Fermostock',
 };
+// marques : annexe du devis Gafic (build_presentation_v34.py) ; C01 est le four MY CHEF existant
+const MARQUE = { C01: 'MY CHEF', C12: 'MY CHEF', C03: 'CODIGEL', C04: 'ZANUSSI', C05: 'ZANUSSI', C06: 'ZANUSSI', C07: 'ZANUSSI', C08: 'ZANUSSI', C09: 'ZANUSSI',
+  C13: 'FIAMMA', C14: 'INOMAK', C16: 'SOFRACA', C17: 'SOFRACA', C18: 'INOMAK', C19: 'ATOSA', C21: 'INOMAK', P01: 'INOMAK', L02: 'LAMBER', L04: 'FERMOD' };
 const EXIST = new Set(['C01', 'C02', 'P03']);
+const nom = c => NOMS[c] + (MARQUE[c] ? ' · ' + MARQUE[c] : '') + (EXIST.has(c) ? ' (existant)' : '');
 // faces émissives : hors atlas d'éclairage (UV1 nulles), rendues en émission seule
 const EMIS = { led: null, rampe_ceramique: [1.0, 0.22, 0.04, 1.1], ecran_rouge: [1.0, 0.06, 0.04, 1.4] };
 const CEIL = new Set(['plafond', 'led']);   // masqués en vue Plan
@@ -370,6 +396,7 @@ async function load() {
   const [sceneB, man, rep, grid, inoxB, inoxrB] = await Promise.all([fetchP('scene/ocean.json'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
     fetchP('bake/reperes.json').then(b => b.text()).then(JSON.parse), fetchP('bake/grille.json').then(b => b.text()).then(JSON.parse),
     fetchP(`tex/inox_${LOWMEM ? 1024 : 2048}.jpg`), fetchP('tex/inoxr_1024.jpg')]);
+  const marques = Promise.all(['mychef.jpg', 'zanussi.png'].map(f => fetchP('marques/' + f).then(b => createImageBitmap(b, { premultiplyAlpha: 'none' })))).catch(() => null);
   [INOX, INOXR] = await Promise.all([inoxB, inoxrB].map(b => createImageBitmap(b)))
     .then(bs => bs.map((b, i) => { const t = new THREE.Texture(b); t.colorSpace = i ? THREE.NoColorSpace : THREE.SRGBColorSpace; return t; }));
   for (const t of [INOX, INOXR]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.flipY = false; t.anisotropy = MAXA; t.needsUpdate = true; }
@@ -421,10 +448,11 @@ async function load() {
     o.add(e); edges.push(e);
     m.polygonOffset = true; m.polygonOffsetFactor = 1; m.polygonOffsetUnits = 1;   // les traits passent devant les faces
   }
-  scene.add(gltf.scene);
+  scene.add(gltf.scene); gltf.scene.updateMatrixWorld(true);
+  habiller(meshes.filter(o => !/^(vitre|plafond|led|sol)/.test(o.material.name)), await marques);
   setRendu(PLAN, Q.has('contours') ? Q.get('contours') !== '0' : PLAN);   // contours avec le dessin, pas avec le rendu réel
   for (const [code, b] of Object.entries(rep)) if (NOMS[code]) makeLabel(code, b);
-  $('legend-list').innerHTML = Object.keys(NOMS).filter(c => rep[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join('');
+  $('legend-list').innerHTML = Object.keys(NOMS).filter(c => rep[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${MARQUE[c] ? ` <b class="mq">${MARQUE[c]}</b>` : ''}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join('');
   document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
   ready = true; $('load').hidden = true; $('b-start').disabled = false;
   if (VIEWS[cur]) setView(cur);   // la grille est là : repositionne hors des meubles
@@ -446,9 +474,79 @@ function captureEnv() {
   envPret = true;
 }
 
+// ---------- Marques (devis Gafic) : façade photo MY CHEF des fours, plaque ZANUSSI relevée sur la photo du fry-top 800, ailleurs le nom
+// de la marque en capitales neutres (pas de logo inventé : les logos d'origine restent à obtenir) ----------
+const FACADES = [], FAC_REEL = +(Q.get('fac') || 0.8), UP = new THREE.Vector3(0, 1, 0);
+const LIGNE = [0.866, 0.5];   // normale (plan) de la ligne de cuisson : C09 à gauche, C04 à droite vue de face
+// cadre de porte relevé au rayon sur le modèle de Julie, à `off` mm du centre du repère ; photo 760 × 690 mm, de z 940 à 1630
+const FOURS = [{ c: 'C01', n: LIGNE, off: 336 }, { c: 'C12', n: [0, 1], off: 256 }];
+const PLAQUES = { C04: 400, C05: 800, C06: 400, C07: 800, C08: 400, C09: 400 };   // largeur des éléments ZANUSSI ; plaque à 75 mm du bord droit
+// nom de marque : [hauteur (mm, 0 : 70 mm sous le dessus), normale de la face quand ce n'est pas celle qui regarde le centre de la pièce,
+// départ du rayon (mm du centre)] ; C03 sous la ligne et C21 (îlot, côté ligne) regardent l'allée des cuisiniers
+const LETTRES = { C03: [580, LIGNE, 650], C13: [900], C14: [0], C17: [0], C18: [0], C19: [950], C21: [0, [-0.866, -0.5], 450], P01: [0], L02: [800] };
+function quad(w, h) {   // plan w × h mm, v inversé : images et canvas posés sans retournement (flipY = false)
+  const g = new THREE.PlaneGeometry(w / 1000, h / 1000), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
+  return g;
+}
+function poser(g, mat, p, N) {   // repère three ; x horizontal, haut de l'image vers le haut ; 1,5 mm devant la face
+  const x = new THREE.Vector3().crossVectors(UP, N).normalize(), y = new THREE.Vector3().crossVectors(N, x), m = new THREE.Mesh(g, mat);
+  m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, N)); m.position.copy(p).addScaledVector(N, 0.0015);
+  m.renderOrder = 1; scene.add(m);
+}
+function texture(src) { const t = src instanceof HTMLCanvasElement ? new THREE.CanvasTexture(src) : new THREE.Texture(src); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = MAXA; t.needsUpdate = true; return t; }
+const decal = map => new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+function lettres(txt) {   // capitales grasses, encre foncée sur fond transparent ; rend [texture, largeur / hauteur]
+  const cv = document.createElement('canvas'), g = cv.getContext('2d'), f = '700 96px Figtree, Arial, sans-serif';
+  g.font = f; g.letterSpacing = '6px'; cv.width = Math.ceil(g.measureText(txt).width + 24); cv.height = 128;
+  g.font = f; g.letterSpacing = '6px'; g.fillStyle = '#1c1f22'; g.textBaseline = 'middle'; g.fillText(txt, 12, 66);
+  return [texture(cv), cv.width / cv.height];
+}
+function habiller(cible, imgs) {
+  const ray = new THREE.Raycaster(), t0 = performance.now(), rates = [];
+  const frappe = (X, Y, Z, a, b, bx) => {   // rayon horizontal (mm ; direction plan a, b) : première face vue de face, si elle est sur l'appareil
+    ray.set(P3(X, Y, Z), new THREE.Vector3(a, 0, -b).normalize());
+    for (const h of ray.intersectObjects(cible, false)) {
+      const N = h.face.normal.clone().transformDirection(h.object.matrixWorld);
+      if (N.dot(ray.ray.direction) > 0) continue;   // vue de dos (matériaux double face du modèle) : le rayon la traverse
+      const hX = h.point.x * 1000, hY = -h.point.z * 1000;
+      return hX < bx.min[0] - 60 || hX > bx.max[0] + 60 || hY < bx.min[1] - 60 || hY > bx.max[1] + 60 ? null : { p: h.point, N, X: hX, Y: hY };
+    }
+    return null;
+  };
+  if (imgs) {
+    const [photo, logo] = imgs.map(texture);
+    const mat = new THREE.MeshBasicMaterial({ map: photo, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }); FACADES.push(mat);
+    for (const f of FOURS) {
+      const b = REP[f.c]; if (!b) continue;
+      const [nx, ny] = f.n;
+      poser(quad(760, 690), mat, P3((b.min[0] + b.max[0]) / 2 + nx * f.off, (b.min[1] + b.max[1]) / 2 + ny * f.off, 1285), new THREE.Vector3(nx, 0, -ny));
+    }
+    const lm = decal(logo), lg = quad(111, 32), [nx, ny] = LIGNE;
+    for (const [c, W] of Object.entries(PLAQUES)) {
+      const b = REP[c]; if (!b) continue;
+      const u = W / 2 - 75, h = frappe((b.min[0] + b.max[0]) / 2 + nx * 750 - ny * u, (b.min[1] + b.max[1]) / 2 + ny * 750 + nx * u, 705, -nx, -ny, b);
+      if (h) poser(lg, lm, h.p, h.N); else rates.push(c);
+    }
+  }
+  for (const [c, [z, n, d]] of Object.entries(LETTRES)) {
+    const b = REP[c]; if (!b || !MARQUE[c]) continue;
+    const Z = z || b.max[2] - 70, cx = (b.min[0] + b.max[0]) / 2, cy = (b.min[1] + b.max[1]) / 2, l = Math.hypot(9800 - cx, 8000 - cy) || 1;
+    const [ux, uy] = n || [(9800 - cx) / l, (8000 - cy) / l], e = d || Math.abs(ux) * (b.max[0] - b.min[0]) / 2 + Math.abs(uy) * (b.max[1] - b.min[1]) / 2 + 300;
+    let h = frappe(cx + ux * e, cy + uy * e, Z, -ux, -uy, b);
+    if (h) {   // 2e rayon : la face touchée prise de front, depuis 20 cm, nom centré en largeur sur l'appareil
+      const k = Math.hypot(h.N.x, h.N.z) || 1, nx = h.N.x / k, ny = -h.N.z / k, f = (h.X - cx) * nx + (h.Y - cy) * ny + 200;
+      h = frappe(cx + nx * f, cy + ny * f, Z, -nx, -ny, b);
+    }
+    if (!h) { rates.push(c); continue; }
+    const [t, r] = lettres(MARQUE[c]); poser(quad(130, 130 / r), decal(t), h.p, h.N);
+  }
+  console.log(`[ocean] marques posées en ${Math.round(performance.now() - t0)} ms` + (rates.length ? ` ; manquées : ${rates.join(' ')}` : ''));
+}
+
 // ---------- Repères (sprites au-dessus de chaque appareil) ----------
 function makeLabel(code, b) {
-  const text = `${code}  ${NOMS[code]}${EXIST.has(code) ? ' (existant)' : ''}`;
+  const text = `${code}  ${nom(code)}`;
   const cv = document.createElement('canvas'), g = cv.getContext('2d');
   g.font = '600 44px Figtree, system-ui, sans-serif'; cv.width = Math.ceil(g.measureText(text).width + 48); cv.height = 76;
   g.font = '600 44px Figtree, system-ui, sans-serif';
@@ -521,7 +619,7 @@ function goTo(code) {   // devant l'appareil : on part du centre de la pièce ve
   if (labelsBig) { labelGroup.children.forEach(s => s.scale.multiplyScalar(1 / 2.6)); labelsBig = false; }
   document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
   if (innerWidth < 700) { $('legend').hidden = true; $('b-legend').classList.remove('on'); }
-  toast(`${code} · ${NOMS[code]}`);
+  toast(`${code} · ${nom(code)}`);
 }
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 $('b-labels').addEventListener('click', e => { labelGroup.visible = !labelGroup.visible; e.currentTarget.classList.toggle('on', labelGroup.visible); });
@@ -533,6 +631,7 @@ function setRendu(plan, contours = plan) {
   PLAN = plan;
   renderer.toneMapping = PLAN ? THREE.NoToneMapping : TM;
   for (const m of RENDU) { const [me, ro, c] = m.userData.rendu[+PLAN]; m.metalness = me; m.roughness = ro; m.color.copy(c); }
+  for (const m of FACADES) m.color.setScalar(PLAN ? 0.97 : FAC_REEL);   // photos MY CHEF : sans compression des blancs en dessin
   scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });   // l'éclairage cuit change de shader (lmChunk)
   edges.forEach(l => l.visible = contours); $('b-edges').classList.toggle('on', contours);
   $('b-rendu').classList.toggle('on', !PLAN);
@@ -560,7 +659,7 @@ canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointerc
 
 // se déplacer : touches (positions physiques : ZQSD en AZERTY, WASD en QWERTY) + joystick
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault(); });
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Escape' && film) filmStop(false);if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault(); });
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 const joy = $('joy'), knob = joy.querySelector('.knob'); let joyId = null; const jv = { x: 0, y: 0 };
@@ -603,6 +702,115 @@ $('b-install').addEventListener('click', async () => {
   else toast(isIOS ? 'Safari : bouton Partager (carré avec flèche) → « Sur l\'écran d\'accueil » → Ajouter.' : 'Chrome : icône « Installer » à droite de la barre d\'adresse. Safari Mac : menu Fichier → Ajouter au Dock.');
 });
 
+// ---------- Film : visite automatique en plans fondus, marque et désignation en sous-titre ; « Enregistrer le film » en fait une vidéo ----------
+const FILM = [
+  { v: 'entree', m: 'Cuisine OCÉAN · Anglet', n: "Implantation EVI PRO d'après le plan ZANUSSI du 04/11/26", d: 6, A: [9415, 4450, 1620], B: [9415, 5050, 1620], TA: [9550, 9000, 1150], TB: [9150, 9000, 1150] },
+  { c: 'C12' }, { c: 'C08' }, { c: 'C05' }, { c: 'C01' },
+  { c: 'C03', A: [7000, 7750, 1200], B: [6900, 7550, 1100], TA: [6250, 6900, 380], TB: [6450, 6550, 380] },   // de trois-quarts depuis le bout de l'allée : l'îlot masque la vue de face
+  { c: 'C18' }, { c: 'C19' }, { c: 'C13' },
+  { c: 'C17', A: [6000, 7600, 1700], B: [6100, 7700, 1650], TA: [6800, 8550, 800], TB: [6900, 8550, 800] },   // côté bacs
+  { c: 'P01' },
+  { c: 'L02', A: [10250, 10950, 1750], B: [10050, 11100, 1650], TA: [9000, 12050, 950], TB: [9250, 12050, 950] },   // le rayonnage L04 empêche de reculer en face
+  { v: 'fin', m: 'EVI PRO', n: 'Image de synthèse non contractuelle', d: 7, fov: 66, A: [9850, 5050, 1900], B: [10050, 4750, 2600], TA: [6600, 6700, 800], TB: [6500, 6900, 400] },   // recul en grue sur toute la cuisine
+];
+const DUREE = 5.2, FONDU = 0.45, FOV_FILM = 56, EV_FILM = +(Q.get('evf') || 0.9), mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+function prise(sh) {   // trajet d'un plan (mm) : caméra de A à B (recul puis avancée), regard de TA à TB (panoramique) ; trajet imposé si A est donné
+  if (sh.A) return sh;
+  const b = REP[sh.c]; if (!b) return null;
+  const cx = (b.min[0] + b.max[0]) / 2, cy = (b.min[1] + b.max[1]) / 2, ext = Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1]) / 2;
+  let l = Math.hypot(9800 - cx, 8000 - cy) || 1;   // point de vue de goTo, puis axe appareil → caméra
+  const [sx, sy] = nearestFree(clamp(cx + (9800 - cx) / l * (ext + 900), ROOM.x0 + 300, ROOM.x1 - 300), clamp(cy + (8000 - cy) / l * (ext + 900), ROOM.y0 + 300, ROOM.y1 - 300));
+  l = Math.hypot(sx - cx, sy - cy) || 1; const ux = (sx - cx) / l, uy = (sy - cy) / l;
+  let a = 500; while (a > 0 && !freeAt(sx + ux * a, sy + uy * a)) a -= 50;   // sans traverser les meubles
+  let e = -250; while (e < 0 && !freeAt(sx + ux * e, sy + uy * e)) e += 50;
+  const tz = Math.min((b.min[2] + b.max[2]) / 2 + 100, 1300), cz = clamp(tz + 600, 1250, 1650), s = Math.min(250, ext * 0.6);
+  return { A: [sx + ux * a, sy + uy * a, cz], B: [sx + ux * e, sy + uy * e, cz], TA: [cx + uy * s, cy - ux * s, tz], TB: [cx - uy * s, cy + ux * s, tz] };
+}
+function filmPose(pr, k) {
+  const e = 0.5 - 0.5 * Math.cos(Math.PI * k);
+  planMode = false;
+  const P = mix(pr.A, pr.B, e), T = mix(pr.TA, pr.TB, e);
+  pos.copy(P3(P[0], P[1])); pos.y = P[2] / 1000;
+  yaw = yawTo(P[0], P[1], T[0], T[1]); pitch = -Math.atan2(P[2] - T[2], Math.hypot(T[0] - P[0], T[1] - P[1]));
+}
+let film = null, rec = null;
+function filmStart(video) {
+  if (!ready || film || renderer.xr.isPresenting) return;
+  film = { t0: performance.now(), plans: FILM.map(sh => [sh, prise(sh), sh.d || DUREE]).filter(p => p[1]), i: -1, fondu: 1, capA: 0, cap: ['', '', ''],
+    avant: { cur, pos: pos.clone(), yaw, pitch, plan: PLAN, contours: !!edges[0]?.visible, labels: labelGroup.visible, ev: renderer.toneMappingExposure } };
+  if (PLAN || film.avant.contours) setRendu(false, false);   // le film montre le rendu réel
+  labelGroup.visible = false; camera.quaternion.identity(); renderer.toneMappingExposure *= EV_FILM;
+  scene.traverse(o => { if (o.userData.ceiling) o.visible = true; });   // plafonds remis si l'on partait de la vue en plan
+  document.body.classList.add('film'); $('film').hidden = false;
+  if (video) recStart();
+}
+function filmStop(fini) {
+  if (!film) return; const a = film.avant; film = null;
+  document.body.classList.remove('film'); $('film').hidden = true; $('cap').classList.remove('show');
+  camera.fov = 64; camera.updateProjectionMatrix(); renderer.toneMappingExposure = a.ev;
+  if (a.plan || a.contours) setRendu(a.plan, a.contours);
+  labelGroup.visible = a.labels;
+  if (VIEWS[a.cur]) setView(a.cur);
+  else { scene.traverse(o => { if (o.userData.ceiling) o.visible = true; }); planMode = false; pos.copy(a.pos); yaw = a.yaw; pitch = a.pitch; cur = a.cur; }
+  recStop(fini);
+}
+function filmStep() {
+  const t = (performance.now() - film.t0) / 1000; let i = 0, t0 = 0;
+  while (i < film.plans.length && t >= t0 + film.plans[i][2]) t0 += film.plans[i++][2];
+  if (i >= film.plans.length) return filmStop(true);
+  const tl = t - t0, [sh, pr, d] = film.plans[i];
+  if (i !== film.i) {
+    film.i = i; camera.fov = pr.fov || FOV_FILM; camera.updateProjectionMatrix();
+    film.cap = sh.c ? [sh.c, MARQUE[sh.c] || '', NOMS[sh.c] + (EXIST.has(sh.c) ? ' (existant)' : '')] : ['', sh.m, sh.n];
+    $('cap-c').textContent = film.cap[0]; $('cap-m').textContent = film.cap[1]; $('cap-n').textContent = film.cap[2];
+  }
+  filmPose(pr, tl / d);
+  film.fondu = clamp(Math.max(1 - tl / FONDU, 1 - (d - tl) / FONDU), 0, 1);
+  film.capA = clamp((tl - 0.5) / 0.6, 0, 1) * clamp((d - 0.8 - tl) / 0.6, 0, 1);
+  $('fade').style.opacity = film.fondu; $('cap').classList.toggle('show', film.capA > 0.5);
+}
+// vidéo : image composée 1280 × 720 (rendu, bandes, sous-titre, fondu), MP4 si le navigateur sait l'écrire, sinon WebM
+const MIME = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+if (MIME && canvas.captureStream && !isTouch) $('b-video').hidden = false;
+function recStart() {
+  const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;
+  const mr = new MediaRecorder(cv.captureStream(30), { mimeType: MIME, videoBitsPerSecond: 2.2e6 })   // ≈ 19 Mo pour le film de 70 s : passe en pièce jointe, parts = [];
+  mr.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+  const g = cv.getContext('2d'), v = g.createRadialGradient(640, 360, 300, 640, 360, 790);   // vignettage, comme à l'écran
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.38)');
+  mr.start(1000); rec = { g, v, mr, parts };
+  snapSize = [1280, 720]; canvas.style.objectFit = 'contain'; canvas.style.background = '#000';
+}
+function recFrame() {
+  const g = rec.g, W = 1280, H = 720, bh = Math.round(H * 0.09);
+  g.drawImage(canvas, 0, 0, W, H); g.fillStyle = rec.v; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, bh); g.fillRect(0, H - bh, W, bh);
+  if (film.capA > 0) {
+    const [c, m, n] = film.cap, x = 52, y = H - bh - 18, h = c ? 96 : 80, fm = '700 36px Figtree, Arial, sans-serif', fn = '500 17px Figtree, Arial, sans-serif';
+    g.font = fm; g.letterSpacing = '2.5px'; const wm = g.measureText(m).width; g.font = fn; g.letterSpacing = '0px';
+    g.globalAlpha = film.capA; g.fillStyle = 'rgba(10,14,18,.6)'; g.beginPath(); g.roundRect(x - 16, y - h, Math.max(wm, g.measureText(n).width) + 32, h, 10); g.fill();
+    g.fillStyle = '#fff'; g.fillText(n, x, y - 12);
+    g.font = fm; g.letterSpacing = '2.5px'; g.fillText(m, x, y - 36);
+    if (c) { g.font = '600 11px Figtree, Arial, sans-serif'; g.letterSpacing = '1.3px'; g.globalAlpha = film.capA * 0.75; g.fillText(c, x, y - h + 22); }
+    g.globalAlpha = 1; g.letterSpacing = '0px';
+  }
+  if (film.fondu > 0) { g.fillStyle = `rgba(0,0,0,${film.fondu})`; g.fillRect(0, 0, W, H); }
+}
+function recStop(garder) {
+  if (!rec) return; const r = rec; rec = null; snapSize = null; canvas.style.objectFit = canvas.style.background = '';
+  r.mr.onstop = () => {
+    if (!garder) return;
+    const a = document.createElement('a'); a.download = `OCEAN_Anglet_visite.${MIME.startsWith('video/mp4') ? 'mp4' : 'webm'}`;
+    a.href = URL.createObjectURL(new Blob(r.parts, { type: MIME.split(';')[0] })); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000); toast(`Film enregistré : ${a.download} (Téléchargements)`);
+  };
+  r.mr.stop();
+}
+$('b-film').addEventListener('click', () => filmStart(false));
+$('b-video').addEventListener('click', () => filmStart(true));
+$('b-stop').addEventListener('click', () => filmStop(false));
+canvas.addEventListener('pointerdown', () => { if (film) filmStop(false); });
+
 // ---------- Boucle ----------
 const clock = new THREE.Clock(), vdir = new THREE.Vector3();
 let snapSize = null;
@@ -627,24 +835,36 @@ function tick() {
     for (const src of renderer.xr.getSession().inputSources) { const gp = src.gamepad; if (!gp || gp.axes.length < 4) continue; if (src.handedness === 'right') { if (Math.abs(gp.axes[2]) > 0.7 && !src._snap) { yaw -= Math.sign(gp.axes[2]) * Math.PI / 6; src._snap = true; } if (Math.abs(gp.axes[2]) < 0.3) src._snap = false; } else { s += gp.axes[2]; f -= gp.axes[3]; } }
     renderer.xr.getCamera().getWorldDirection(vdir); heading = Math.atan2(-vdir.x, -vdir.z);
   } else if (gyro && devOri) { camera.getWorldDirection(vdir); heading = Math.atan2(-vdir.x, -vdir.z); }
-  if (f || s) {
+  if (film) filmStep();
+  else if (f || s) {
     const len = Math.hypot(f, s); if (len > 1) { f /= len; s /= len; }
     const sp = (keys.ShiftLeft || keys.ShiftRight ? 2.2 : 1.2) * (planMode ? 3 : 1) * dt;
     move((-Math.sin(heading) * f + Math.cos(heading) * s) * sp, (-Math.cos(heading) * f - Math.sin(heading) * s) * sp);
   }
-  if (gyro && devOri && !xr) {
+  if (gyro && devOri && !xr && !film) {
     const a = THREE.MathUtils.degToRad(devOri.alpha), b = THREE.MathUtils.degToRad(devOri.beta), g = THREE.MathUtils.degToRad(devOri.gamma);
     const orient = THREE.MathUtils.degToRad((screen.orientation && screen.orientation.angle) || window.orientation || 0);
     gE.set(b, a, -g, 'YXZ'); gq.setFromEuler(gE); gq.multiply(q1); gq.multiply(q0.setFromAxisAngle(zee, -orient));
     camera.quaternion.copy(gq); pitchObj.rotation.x = 0; rig.rotation.y = alphaOffset;
   } else { rig.rotation.y = yaw; pitchObj.rotation.x = xr ? 0 : pitch; }
   renderer.render(scene, camera);
+  if (rec && film) recFrame();
 }
 resize(); setView('chef');
 renderer.setAnimationLoop(tick);
 load().catch(e => { console.error(e); $('load').textContent = 'Chargement impossible : ' + e.message; toast('Chargement impossible : ' + e.message); });
-window.DBG = { scene, renderer, camera, THREE, captureEnv, goTo, freeAt, pos: () => [Math.round(pos.x * 1000), Math.round(-pos.z * 1000)],
+window.DBG = { scene, renderer, camera, THREE, captureEnv, goTo, freeAt, blocked, pos: () => [Math.round(pos.x * 1000), Math.round(-pos.z * 1000)],
   look: (X, Y, tX, tY, p = -0.12) => stand(X, Y, tX, tY, p),
-  snap: (w = 1280, h = 720, q = 0.9) => { snapSize = [w, h]; tick(); const d = canvas.toDataURL('image/jpeg', q); snapSize = null; return d; } };
+  snap: (w = 1280, h = 720, q = 0.9) => { snapSize = [w, h]; tick(); const d = canvas.toDataURL('image/jpeg', q); snapSize = null; return d; },
+  film: filmStart, prises: () => FILM.map(sh => { const p = prise(sh); return (sh.c || sh.v) + (p && p.A ? ' ' + [...p.A, ...p.B].map(Math.round).join(',') : ''); }).join(' | '),
+  planche: (W = 320, H = 180, pl = FILM.map(prise), k = 0.5) => {   // planche contact : une image (milieu par défaut) de chaque plan du film, en grille
+    const cv = document.createElement('canvas'), g = cv.getContext('2d'), ev = renderer.toneMappingExposure;
+    cv.width = W * 4; cv.height = H * Math.ceil(pl.length / 4); snapSize = [W * 2, H * 2]; resize(); labelGroup.visible = false; renderer.toneMappingExposure *= EV_FILM;
+    scene.traverse(o => { if (o.userData.ceiling) o.visible = true; });
+    pl.forEach((p, i) => { if (!p) return; camera.fov = p.fov || FOV_FILM; camera.updateProjectionMatrix(); filmPose(p, k); rig.rotation.y = yaw; pitchObj.rotation.x = pitch; renderer.render(scene, camera); g.drawImage(canvas, (i % 4) * W, Math.floor(i / 4) * H, W, H); });
+    snapSize = null; camera.fov = 64; resize(); camera.updateProjectionMatrix(); renderer.toneMappingExposure = ev;
+    const im = document.createElement('img'); im.src = cv.toDataURL('image/jpeg', 0.85); im.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1000';
+    im.onclick = () => im.remove(); document.body.append(im); return pl.length;
+  } };
 </script>
 </body></html>
