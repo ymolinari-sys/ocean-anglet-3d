@@ -771,10 +771,10 @@ function filmStep() {
 }
 // vidéo : image composée 1280 × 720 (rendu, bandes, sous-titre, fondu), MP4 si le navigateur sait l'écrire, sinon WebM
 const MIME = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
-if (MIME && canvas.captureStream && !isTouch) $('b-video').hidden = false;
+if (MIME && canvas.captureStream && !isTouch && window.self === window.top) $('b-video').hidden = false;   // dans un cadre (artefact), le téléchargement est bloqué
 function recStart() {
   const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;
-  const mr = new MediaRecorder(cv.captureStream(30), { mimeType: MIME, videoBitsPerSecond: 2.2e6 })   // ≈ 19 Mo pour le film de 70 s : passe en pièce jointe, parts = [];
+  const mr = new MediaRecorder(cv.captureStream(30), { mimeType: MIME, videoBitsPerSecond: 2.2e6 }), parts = [];   // ≈ 19 Mo pour le film de 70 s : passe en pièce jointe
   mr.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
   const g = cv.getContext('2d'), v = g.createRadialGradient(640, 360, 300, 640, 360, 790);   // vignettage, comme à l'écran
   v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.38)');
