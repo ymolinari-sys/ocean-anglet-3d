@@ -22,9 +22,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);overf
 .brand{background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;padding:6px 10px;pointer-events:auto;min-width:0;flex:0 0 auto}
 .brand b{display:block;font-size:14px;line-height:1.15;text-wrap:balance}
 .brand span{display:block;font-size:11px;color:var(--muted);letter-spacing:.02em}
-.chips{display:flex;gap:6px;overflow-x:auto;pointer-events:auto;padding:2px;scrollbar-width:none;min-width:0}
+.chips{display:flex;gap:5px;overflow-x:auto;pointer-events:auto;padding:2px;scrollbar-width:none;min-width:0}
 .chips::-webkit-scrollbar{display:none}
-button.chip{flex:0 0 auto;font:600 12.5px var(--font);color:var(--fg);background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:7px 11px;cursor:pointer}
+button.chip{flex:0 0 auto;font:600 12.5px var(--font);color:var(--fg);background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:7px 10px;cursor:pointer}
 button.chip:focus-visible,button.primary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
 #legend{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);bottom:calc(env(safe-area-inset-bottom,0px) + 56px);width:min(300px,calc(100vw - 24px));background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:10px 12px;overflow:auto;font-size:12.5px;line-height:1.35;box-sizing:border-box}
@@ -94,6 +94,7 @@ button.primary:disabled{opacity:.55;cursor:progress}
     <button class="chip" id="b-legend">Liste</button>
     <button class="chip on" id="b-edges">Contours</button>
     <button class="chip" id="b-rendu">Rendu réel</button>
+    <button class="chip" id="b-variante" title="Variante de matériel : four neuf et ligne de cuisson chiffrés en MY CHEF · ZANUSSI ou en UNOX · CAPIC ; le reste ne change pas">MY CHEF · ZANUSSI</button>
     <button class="chip" id="b-murs" title="Finition des murs : peinture, zellige (3 coloris) ou inox, choix de rendu">Murs : peinture</button>
     <button class="chip on" id="b-cuis" title="Quatre cuisiniers en service, pour juger des passages">Cuisiniers</button>
     <button class="chip" id="b-gyro" hidden>Gyroscope</button>
@@ -169,7 +170,7 @@ const $ = id => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
-const AV = 16;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AV = 17;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
 
 // ---------- Rendu / scène ----------
 // deux rendus, bouton « Rendu réel » (setRendu) : réel par défaut (éclairage cuit, inox brossé qui reflète la cuisine, comme la page 1
@@ -177,12 +178,21 @@ const AV = 16;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de f
 let PLAN = Q.get('rendu') === 'dessin';
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
-renderer.toneMappingExposure = +(Q.get('ev') || 1.05);
+renderer.toneMappingExposure = +(Q.get('ev') || 0.9);
 renderer.xr.enabled = true;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe6ec);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+// fond du rendu réel : ciel de fin d'après-midi en dégradé (celui du film, vu par la fenêtre) ; le dessin garde son fond papier
+const FOND_PLAN = new THREE.Color(0xdfe6ec);
+const SKY = (() => {
+  const cv = document.createElement('canvas'); cv.width = 2; cv.height = 512;
+  const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#7e97b4'); gr.addColorStop(0.42, '#c9c3b4'); gr.addColorStop(0.52, '#f1c98f'); gr.addColorStop(0.6, '#d9a868'); gr.addColorStop(1, '#4e4538');
+  g.fillStyle = gr; g.fillRect(0, 0, 2, 512);
+  const t = new THREE.CanvasTexture(cv); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
 const camera = new THREE.PerspectiveCamera(64, 1, 0.05, 80);
 const pitchObj = new THREE.Object3D(), rig = new THREE.Object3D();
 pitchObj.add(camera); rig.add(pitchObj); scene.add(rig);
@@ -205,7 +215,11 @@ const NOMS = {
 const MARQUE = { C01: 'MY CHEF', C12: 'MY CHEF', C03: 'CODIGEL', C04: 'ZANUSSI', C05: 'ZANUSSI', C06: 'ZANUSSI', C07: 'ZANUSSI', C08: 'ZANUSSI', C09: 'ZANUSSI',
   C13: 'FIAMMA', C14: 'INOMAK', C16: 'SOFRACA', C17: 'SOFRACA', C18: 'INOMAK', C19: 'ATOSA', C21: 'INOMAK', P01: 'INOMAK', L02: 'LAMBER', L04: 'FERMOD' };
 const EXIST = new Set(['C01', 'C02', 'P03']);
-const nom = c => NOMS[c] + (MARQUE[c] ? ' · ' + MARQUE[c] : '') + (EXIST.has(c) ? ' (existant)' : '');
+// bouton Variante : four neuf et ligne de cuisson aussi chiffrés en UNOX · CAPIC ; C01 reste MY CHEF (four existant), le reste ne change pas
+const MARQUE_B = { C12: 'UNOX', C04: 'CAPIC', C05: 'CAPIC', C06: 'CAPIC', C07: 'CAPIC', C08: 'CAPIC', C09: 'CAPIC' };
+let VARIANTE = false;
+const marque = c => (VARIANTE && MARQUE_B[c]) || MARQUE[c];
+const nom = c => NOMS[c] + (marque(c) ? ' · ' + marque(c) : '') + (EXIST.has(c) ? ' (existant)' : '');
 // faces émissives : hors atlas d'éclairage (UV1 nulles), rendues en émission seule
 const EMIS = { led: null, rampe_ceramique: [1.0, 0.22, 0.04, 1.1], ecran_rouge: [1.0, 0.06, 0.04, 1.4] };
 const CEIL = new Set(['plafond', 'led']);   // masqués en vue Plan
@@ -224,8 +238,9 @@ async function fetchP(f) {
   return new Blob(parts);
 }
 const LMREF = +(Q.get('occ') || 0.35);   // éclairement (×π) sous lequel les reflets s'éteignent : intérieur des meubles, dessous des tables
-// ambiance claire « présentation » : éclairement cuit × GAIN + lumière d'appoint uniforme FILL (débouche les ombres)
-const GAIN = +(Q.get('gain') || 1), FILL = +(Q.get('fill') ?? 0.35);
+// éclairage cuit = la lumière du film (soleil doré rasant + dalles chaudes, tools/plateau_visite.py) × GAIN,
+// plus une pointe d'appoint uniforme FILL (débouche à peine les recoins : l'ambiance du film prime)
+const GAIN = +(Q.get('gain') || 1), FILL = +(Q.get('fill') ?? 0.06);
 // rendu « présentation » : lumière plate façon SketchUp = ambiance AMB + soleil fixe SOLEIL selon l'orientation de la face,
 // assombrie dans les recoins d'après l'éclairement cuit (poids OMBRE ; plein jour au-delà de OCC_REF ≈ médiane de la cuisson)
 const AMB = +(Q.get('amb') || 0.72), SOLEIL = +(Q.get('soleil') || 0.3), OMBRE = +(Q.get('ombre') ?? 0.5), OCC_REF = 0.25;
@@ -518,7 +533,7 @@ async function load() {
   setRendu(PLAN, Q.has('contours') ? Q.get('contours') !== '0' : PLAN);   // contours avec le dessin, pas avec le rendu réel
   if (Q.get('murs')) setMurs(Q.get('murs'));
   for (const [code, b] of Object.entries(rep)) if (NOMS[code]) makeLabel(code, b);
-  $('legend-list').innerHTML = Object.keys(NOMS).filter(c => rep[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${MARQUE[c] ? ` <b class="mq">${MARQUE[c]}</b>` : ''}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join('');
+  majLegende();
   document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
   brigade();
   ready = true; $('load').hidden = true; $('b-start').disabled = false;
@@ -548,6 +563,9 @@ function captureEnv() {
 // ---------- Marques (devis Gafic) : façade photo MY CHEF des fours, plaque ZANUSSI relevée sur la photo du fry-top 800, ailleurs le nom
 // de la marque en capitales neutres (pas de logo inventé : les logos d'origine restent à obtenir) ----------
 const FACADES = [], FAC_REEL = +(Q.get('fac') || 0.8), UP = new THREE.Vector3(0, 1, 0);
+// les marquages qui changent avec le bouton Variante : VAR_A = devis (façade MY CHEF du four neuf, plaques ZANUSSI), VAR_B = UNOX · CAPIC
+const VAR_A = new THREE.Group(), VAR_B = new THREE.Group(); VAR_B.visible = false; scene.add(VAR_A, VAR_B);
+const majLegende = () => { $('legend-list').innerHTML = Object.keys(NOMS).filter(c => REP[c]).sort().map(c => `<li data-code="${c}"><code>${c}</code><span>${NOMS[c]}${marque(c) ? ` <b class="mq">${marque(c)}</b>` : ''}${EXIST.has(c) ? ' <em>existant</em>' : ''}</span></li>`).join(''); };
 const LIGNE = [0.866, 0.5];   // normale (plan) de la ligne de cuisson : C09 à gauche, C04 à droite vue de face
 // cadre de porte relevé au rayon sur le modèle de Julie, à `off` mm du centre du repère ; photo 760 × 690 mm, de z 940 à 1630
 const FOURS = [{ c: 'C01', n: LIGNE, off: 336 }, { c: 'C12', n: [0, 1], off: 256 }];
@@ -560,10 +578,10 @@ function quad(w, h) {   // plan w × h mm, v inversé : images et canvas posés 
   for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
   return g;
 }
-function poser(g, mat, p, N) {   // repère three ; x horizontal, haut de l'image vers le haut ; 1,5 mm devant la face
+function poser(g, mat, p, N, grp) {   // repère three ; x horizontal, haut de l'image vers le haut ; 1,5 mm devant la face
   const x = new THREE.Vector3().crossVectors(UP, N).normalize(), y = new THREE.Vector3().crossVectors(N, x), m = new THREE.Mesh(g, mat);
   m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, N)); m.position.copy(p).addScaledVector(N, 0.0015);
-  m.renderOrder = 1; scene.add(m);
+  m.renderOrder = 1; (grp || scene).add(m);
 }
 function texture(src) { const t = src instanceof HTMLCanvasElement ? new THREE.CanvasTexture(src) : new THREE.Texture(src); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = MAXA; t.needsUpdate = true; return t; }
 const decal = map => new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
@@ -590,14 +608,17 @@ function habiller(cible, imgs) {
     const mat = new THREE.MeshBasicMaterial({ map: photo, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }); FACADES.push(mat);
     for (const f of FOURS) {
       const b = REP[f.c]; if (!b) continue;
-      const [nx, ny] = f.n;
-      poser(quad(760, 690), mat, P3((b.min[0] + b.max[0]) / 2 + nx * f.off, (b.min[1] + b.max[1]) / 2 + ny * f.off, 1285), new THREE.Vector3(nx, 0, -ny));
+      const [nx, ny] = f.n, N = new THREE.Vector3(nx, 0, -ny);
+      const p = P3((b.min[0] + b.max[0]) / 2 + nx * f.off, (b.min[1] + b.max[1]) / 2 + ny * f.off, 1285);
+      poser(quad(760, 690), mat, p, N, f.c === 'C12' ? VAR_A : undefined);   // C01 : four existant, sa façade MY CHEF ne change pas
+      if (f.c === 'C12') { const [t, r] = lettres('UNOX'); poser(quad(230, 230 / r), decal(t), p, N, VAR_B); }
     }
     const lm = decal(logo), lg = quad(111, 32), [nx, ny] = LIGNE;
+    const [tc, rc] = lettres('CAPIC'), gc = quad(140, 140 / rc), mc = decal(tc);
     for (const [c, W] of Object.entries(PLAQUES)) {
       const b = REP[c]; if (!b) continue;
       const u = W / 2 - 75, h = frappe((b.min[0] + b.max[0]) / 2 + nx * 750 - ny * u, (b.min[1] + b.max[1]) / 2 + ny * 750 + nx * u, 705, -nx, -ny, b);
-      if (h) poser(lg, lm, h.p, h.N); else rates.push(c);
+      if (h) { poser(lg, lm, h.p, h.N, VAR_A); poser(gc, mc, h.p, h.N, VAR_B); } else rates.push(c);
     }
   }
   for (const [c, [z, n, d]] of Object.entries(LETTRES)) {
@@ -695,11 +716,22 @@ function goTo(code) {   // devant l'appareil : on part du centre de la pièce ve
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 $('b-labels').addEventListener('click', e => { labelGroup.visible = !labelGroup.visible; e.currentTarget.classList.toggle('on', labelGroup.visible); });
 $('b-edges').addEventListener('click', e => { const v = !edges[0]?.visible; edges.forEach(l => l.visible = v); e.currentTarget.classList.toggle('on', v); });
+$('b-variante').addEventListener('click', e => {
+  VARIANTE = !VARIANTE;
+  VAR_A.visible = !VARIANTE; VAR_B.visible = VARIANTE;
+  e.currentTarget.textContent = VARIANTE ? 'UNOX · CAPIC' : 'MY CHEF · ZANUSSI';
+  e.currentTarget.classList.toggle('on', VARIANTE);
+  labelGroup.clear(); for (const [code, b] of Object.entries(REP)) if (NOMS[code]) makeLabel(code, b);
+  majLegende();
+  if (PLAN) envPret = false; else captureEnv();   // l'inox reflète le marquage affiché
+});
 // bouton « Rendu réel » : dessin (lumière plate, sans compression des blancs : murs et carrelage restent blancs, contours) ↔ réel
-// (éclairage cuit, reflets de la cuisine dans l'inox ; compression « neutre » qui garde les blancs blancs, ?tm=aces ou agx pour comparer)
-const TM = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping }[Q.get('tm')] ?? THREE.NeutralToneMapping;
+// (éclairage cuit du film, reflets de la cuisine dans l'inox ; AgX comme le film, ?tm=neutral ou aces pour comparer)
+const TM = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping, neutral: THREE.NeutralToneMapping }[Q.get('tm')] ?? THREE.AgXToneMapping;
 function setRendu(plan, contours = plan) {
   PLAN = plan;
+  scene.background = PLAN ? FOND_PLAN : SKY;
+  renderer.domElement.style.filter = PLAN ? '' : 'contrast(1.07) saturate(1.1)';   // approche le look AgX « Punchy » du film
   renderer.toneMapping = PLAN ? THREE.NoToneMapping : TM;
   for (const m of RENDU) { const [me, ro, c] = m.userData.rendu[+PLAN]; m.metalness = me; m.roughness = ro; m.color.copy(c); }
   for (const m of FACADES) m.color.setScalar(PLAN ? 0.97 : FAC_REEL);   // photos MY CHEF : sans compression des blancs en dessin
@@ -817,7 +849,7 @@ const FILM = [
   { c: 'L02', A: [10250, 10950, 1750], B: [10050, 11100, 1650], TA: [9000, 12050, 950], TB: [9250, 12050, 950] },   // le rayonnage L04 empêche de reculer en face
   { v: 'fin', m: 'EVI PRO', n: 'Image de synthèse non contractuelle', d: 7, fov: 66, A: [9850, 5050, 1900], B: [10050, 4750, 2600], TA: [6600, 6700, 800], TB: [6500, 6900, 400] },   // recul en grue sur toute la cuisine
 ];
-const DUREE = 5.2, FONDU = 0.45, FOV_FILM = 56, EV_FILM = +(Q.get('evf') || 0.9), mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+const DUREE = 5.2, FONDU = 0.45, FOV_FILM = 56, EV_FILM = +(Q.get('evf') || 1), mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
 function prise(sh) {   // trajet d'un plan (mm) : caméra de A à B (recul puis avancée), regard de TA à TB (panoramique) ; trajet imposé si A est donné
   if (sh.A) return sh;
   const b = REP[sh.c]; if (!b) return null;
