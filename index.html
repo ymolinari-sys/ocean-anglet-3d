@@ -42,6 +42,26 @@ button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:tran
 #toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--fg);color:var(--bg);font-size:12.5px;padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:calc(100vw - 32px)}
 #toast.show{opacity:.95}
 #legend li b.mq{font:700 9.5px var(--font);letter-spacing:.07em;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:3px;white-space:nowrap;vertical-align:1px}
+/* fiche équipement : panneau latéral (bureau), tiroir bas ≤ 44 % de l'écran (mobile) */
+#fiche{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);width:min(320px,calc(100vw - 24px));max-height:calc(100vh - 150px);background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;font-size:13px;line-height:1.45}
+#fiche .fx{position:sticky;top:6px;float:right;margin:0 6px 0 8px;width:44px;height:44px;border:0;border-radius:10px;background:var(--panel);color:var(--muted);font:inherit;font-size:19px;cursor:pointer;z-index:2}
+#fiche .fx:hover{color:var(--fg)}
+#fiche section{padding:12px 14px;border-top:1px solid var(--line)}
+#fiche section:first-of-type{border-top:0;padding-top:14px}
+#fiche h3{margin:0;font-size:14px;font-weight:600}
+#fiche h3 code{color:var(--accent);font:700 13px var(--font);margin-right:7px}
+#fiche h3 em{font-style:normal;color:var(--muted);font-weight:400;font-size:11.5px;margin-left:6px}
+#fiche dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:9px 0 0}
+#fiche dt{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;align-self:baseline;padding-top:2px}
+#fiche dd{margin:0}
+#fiche img{display:block;width:100%;border-radius:8px;margin:9px 0 0;background:#fff;border:1px solid var(--line);box-sizing:border-box}
+#fiche a.ftl{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--accent);text-decoration:none;font-weight:600}
+#fiche a.ftl:hover{text-decoration:underline}
+#fiche .var{margin:9px 0 0;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;font-size:12px;color:var(--muted)}
+@media (max-width:700px){
+  #fiche{left:0;right:0;top:auto;bottom:0;width:auto;max-height:44vh;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  body.fiche #joy,body.fiche #hint{display:none}
+}
 /* film : bandes noires, sous-titre (marque + désignation), fondu entre les plans */
 #film{position:fixed;inset:0;pointer-events:none;z-index:5}
 #film::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.38) 100%)}
@@ -58,7 +78,7 @@ button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:tran
 #cine{position:fixed;inset:0;z-index:60;background:#000;display:flex;align-items:center;justify-content:center}
 #cine video{width:100%;height:100%;object-fit:contain;background:#000}
 #cine .chip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:61}
-body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,body.film #vrwrap,body.film #toast{display:none!important}
+body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,body.film #fiche,body.film #vrwrap,body.film #toast{display:none!important}
 [hidden]{display:none!important}
 #help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,22,.45);padding:16px;overflow:auto;box-sizing:border-box}
 #help .card{margin:auto;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:18px 20px;max-width:430px;width:100%;box-sizing:border-box}
@@ -110,6 +130,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
   <ol id="legend-list"></ol>
   <p>Toucher une ligne pour aller voir l'appareil.</p>
 </aside>
+
+<aside id="fiche" hidden aria-label="Fiche de l'équipement"></aside>
 
 <div id="joy" hidden aria-label="Joystick de déplacement"><div class="knob"></div></div>
 <div id="hint">Glisser pour regarder · Z Q S D ou flèches pour se déplacer</div>
@@ -543,7 +565,8 @@ async function load() {
   if (Q.get('murs')) setMurs(Q.get('murs'));
   for (const [code, b] of Object.entries(rep)) if (NOMS[code]) makeLabel(code, b);
   majLegende();
-  document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
+  // délégation : majLegende() réécrit les <li> à chaque variante, un listener par li serait perdu
+  $('legend-list').addEventListener('click', e => { const li = e.target.closest('li'); if (li) goTo(li.dataset.code); });
   brigade();
   ready = true; $('load').hidden = true; $('bar').hidden = true; $('b-start').disabled = false;
   if (VIEWS[cur]) setView(cur);   // la grille est là : repositionne hors des meubles
@@ -655,7 +678,7 @@ function makeLabel(code, b) {
   g.fillStyle = '#6fb1f0'; g.fillText(code, 22, 54); g.fillStyle = '#fff'; g.fillText(text.slice(code.length), 22 + g.measureText(code).width, 54);
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
-  const h = 0.11; sp.scale.set(h * cv.width / 76, h, 1); sp.userData.h = h;
+  const h = 0.11; sp.scale.set(h * cv.width / 76, h, 1); sp.userData.h = h; sp.userData.code = code;
   sp.position.copy(P3((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, Math.min(b.max[2], 2400) + 140)); sp.renderOrder = 10;
   labelGroup.add(sp);
 }
@@ -721,6 +744,7 @@ function goTo(code) {   // devant l'appareil : on part du centre de la pièce ve
   document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
   if (innerWidth < 700) { $('legend').hidden = true; $('b-legend').classList.remove('on'); }
   toast(`${code} · ${nom(code)}`);
+  ouvreFiche(code);
 }
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 $('b-labels').addEventListener('click', e => { labelGroup.visible = !labelGroup.visible; e.currentTarget.classList.toggle('on', labelGroup.visible); });
@@ -731,6 +755,7 @@ $('b-variante').addEventListener('click', e => {
   e.currentTarget.textContent = VARIANTE ? 'UNOX · CAPIC' : 'MY CHEF · ZANUSSI';
   e.currentTarget.classList.toggle('on', VARIANTE);
   labelGroup.clear(); for (const [code, b] of Object.entries(REP)) if (NOMS[code]) makeLabel(code, b);
+  if (ficheCode) ouvreFiche(ficheCode);   // la fiche affichée suit la variante (bandeau UNOX · CAPIC)
   majLegende();
   if (PLAN) envPret = false; else captureEnv();   // l'inox reflète le marquage affiché
 });
@@ -788,6 +813,104 @@ $('b-help').addEventListener('click', () => { $('help').hidden = false; });
 $('b-start').addEventListener('click', () => { $('help').hidden = true; });
 $('b-start').disabled = true;
 if (isTouch) { $('joy').hidden = false; $('b-gyro').hidden = false; }
+
+// ---------- Fiches équipements : tap sur un appareil (boîte de bake/reperes.json) ou son étiquette → panneau ----------
+// Données : assets/fiches/equipements.json (généré par tools/fiches_data.py), champs du schéma library_equipment
+// (doc conception everpro) pour brancher la bibliothèque Supabase plus tard sans réécriture. Chargé à la première
+// ouverture seulement : rien au chargement initial. Un champ absent est masqué, jamais deviné.
+const fiche = $('fiche');
+let FICHES = null, PRIX = null, ficheCode = null;
+const COM = Q.has('com');   // mode commercial : prix lus dans assets/fiches/prix.json, fichier jamais committé (absent du site public)
+function ficheData() {
+  return FICHES ??= Promise.all([
+    fetch('assets/fiches/equipements.json').then(r => r.json()),
+    COM ? fetch('assets/fiches/prix.json').then(r => r.ok ? r.json() : null).catch(() => null) : null,
+  ]).then(([d, px]) => {
+    PRIX = px && px.prix_ht || null;
+    const m = new Map();
+    for (const f of d.equipements) { if (!m.has(f.repere)) m.set(f.repere, []); m.get(f.repere).push(f); }
+    return m;
+  });
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const kw = v => String(v).replace('.', ',') + ' kW';
+function ficheHTML(f, premier) {
+  const file = k => (f.files || []).find(x => x.kind === k);
+  const rows = [];
+  if (f.brand) rows.push(['Marque', esc(f.brand.label)]);
+  if (f.manufacturer_reference) rows.push(['Référence', esc(f.manufacturer_reference)]);
+  const dims = [['L', f.largeur_mm], ['P', f.profondeur_mm], ['H', f.hauteur_mm]].filter(d => d[1]);
+  if (dims.length) rows.push(['Dimensions', dims.map(d => d[0] + ' ' + d[1]).join(' × ') + ' mm']);
+  if (f.energie) rows.push(['Énergie', { electrique: 'Électrique', gaz: 'Gaz', mixte: 'Mixte', sans: 'Sans énergie' }[f.energie] || esc(f.energie)]);
+  if (f.puissance_elec_kw) rows.push(['Puissance élec.', kw(f.puissance_elec_kw)]);
+  if (f.puissance_gaz_kw) rows.push(['Puissance gaz', kw(f.puissance_gaz_kw)]);
+  if (PRIX && f.manufacturer_reference in PRIX) rows.push(['Prix HT', Number(PRIX[f.manufacturer_reference]).toLocaleString('fr-FR') + ' €']);
+  const photo = file('photo'), ft = file('ft_pdf');
+  return `<section><h3>${premier ? `<code>${esc(f.repere)}</code>` : ''}${esc(f.label)}${EXIST.has(f.repere) ? '<em>existant</em>' : ''}</h3>
+${rows.length ? '<dl>' + rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('') + '</dl>' : ''}
+${photo ? `<img src="${esc(photo.path)}" alt="${esc(f.label)}" loading="lazy">` : ''}
+${ft ? `<a class="ftl" href="${esc(ft.path)}" target="_blank" rel="noopener">📄 Fiche technique (PDF)</a>` : ''}</section>`;
+}
+async function ouvreFiche(code) {
+  const lst0 = (await ficheData()).get(code);
+  if (!lst0 && !NOMS[code]) return;
+  ficheCode = code;
+  // la nomenclature porte les deux chiffrages : params.variante 'zanussi' (devis de base) / 'capic' (variante) ; sans
+  // params.variante, l'équipement est commun. On ne montre que ce qui correspond au bouton Variante.
+  const aCapic = lst0 && lst0.some(f => f.params && f.params.variante === 'capic');
+  let corps;
+  if (VARIANTE && MARQUE_B[code] && !aCapic) {   // repère basculé sans fiche variante (four UNOX) : rien n'est repris du devis de base
+    corps = `<section><h3><code>${esc(code)}</code>${esc(NOMS[code])}</h3>
+<p class="var">Variante <b>${esc(MARQUE_B[code])}</b> affichée : fiche détaillée à venir (référence et cotes non documentées ici). Repasser en MY CHEF · ZANUSSI pour la fiche du devis de base.</p></section>`;
+  } else if (lst0) {
+    const want = VARIANTE ? 'capic' : 'zanussi';
+    const lst = lst0.filter(f => { const v = f.params && f.params.variante; return !v || v === want; });
+    // l'appareil principal (celui que nomme le repère) avant son meuble support : préfixe du nom
+    // du repère d'abord, puis les labels « … sous … » (soubassement, placard porteur) en queue
+    const prem = (NOMS[code] || '').toLowerCase().split(/[^a-zà-ÿ0-9]+/)[0] || '';
+    const score = f => { const l = f.label.toLowerCase();
+      return (prem && l.startsWith(prem) ? -100 : 0) + (/\bsous\b/.test(l) ? 50 : 0); };
+    const tri = [...lst].sort((a, b) => score(a) - score(b));
+    corps = tri.map((f, i) => ficheHTML(f, !i)).join('');
+  } else {   // repère de la visite sans ligne de nomenclature (matériel existant conservé)
+    corps = `<section><h3><code>${esc(code)}</code>${esc(NOMS[code])}${EXIST.has(code) ? '<em>existant</em>' : ''}</h3></section>`;
+  }
+  fiche.innerHTML = '<button class="fx" aria-label="Fermer la fiche">✕</button>' + corps;
+  fiche.querySelector('.fx').addEventListener('click', fermeFiche);
+  fiche.hidden = false; fiche.scrollTop = 0; document.body.classList.add('fiche');
+  $('legend').hidden = true; $('b-legend').classList.remove('on');
+}
+function fermeFiche() { fiche.hidden = true; ficheCode = null; document.body.classList.remove('fiche'); }
+addEventListener('keydown', e => { if (e.code === 'Escape' && !fiche.hidden) fermeFiche(); });
+
+// tap court (pas un glisser) : rayon vers les boîtes des repères, et les étiquettes quand elles sont affichées
+const pickRay = new THREE.Raycaster(), pickV = new THREE.Vector2(), pickBox = new THREE.Box3(), pickP = new THREE.Vector3();
+function pick(x, y) {
+  if (!ready) return null;
+  pickV.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1);
+  pickRay.setFromCamera(pickV, camera);
+  let best = null, bd = Infinity;
+  if (labelGroup.visible) {
+    const hit = pickRay.intersectObjects(labelGroup.children)[0];
+    if (hit) { best = hit.object.userData.code; bd = hit.distance; }
+  }
+  for (const [code, b] of Object.entries(REP)) {
+    if (!NOMS[code]) continue;
+    pickBox.min.set(b.min[0] / 1000, b.min[2] / 1000, -b.max[1] / 1000);   // mm Blender → m three (cf. P3)
+    pickBox.max.set(b.max[0] / 1000, b.max[2] / 1000, -b.min[1] / 1000);
+    const p = pickRay.ray.intersectBox(pickBox, pickP);
+    if (p) { const d = p.distanceTo(pickRay.ray.origin); if (d < bd) { bd = d; best = code; } }
+  }
+  return best;
+}
+let tapX = 0, tapY = 0, tapT = 0;
+canvas.addEventListener('pointerdown', e => { tapX = e.clientX; tapY = e.clientY; tapT = performance.now(); });
+canvas.addEventListener('pointerup', e => {
+  if (film || document.body.classList.contains('film')) return;
+  if (Math.hypot(e.clientX - tapX, e.clientY - tapY) > 8 || performance.now() - tapT > 500) return;
+  const code = pick(e.clientX, e.clientY);
+  if (code) ouvreFiche(code); else fermeFiche();
+});
 
 // regarder : glisser sur la vue (souris, trackpad et doigt « tirent le monde », comme aux Halles)
 let lookId = null, lx = 0, ly = 0, lookTouch = false;

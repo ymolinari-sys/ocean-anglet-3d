@@ -1,0 +1,4 @@
+{
+  "_note": "Mode commercial : copier ce fichier en prix.json (MEME dossier) et remplir prix_ht par reference fabricant. prix.json est dans .gitignore : jamais committe, donc absent du site public. La fiche n'affiche un prix que si la page est ouverte avec ?com dans l'URL ET que prix.json existe.",
+  "prix_ht": {}
+}

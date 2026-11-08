@@ -1,0 +1,1566 @@
+{
+ "_source": "Nomenclature Océan Anglet (devis de base ZANUSSI) — généré par tools/fiches_data.py",
+ "_schema": "library_equipment + brand{code,label} + files[{kind,path}] (doc conception everpro §2.3)",
+ "_note_prix": "Aucun prix dans ce fichier : lien public client.",
+ "equipements": [
+  {
+   "repere": "C01",
+   "scene": "ensemble",
+   "label": "Four mixte 6 GN 1/1 existant, posé sur C02",
+   "brand": {
+    "code": "MY_CHEF",
+    "label": "MY CHEF"
+   },
+   "largeur_mm": 760,
+   "profondeur_mm": 710,
+   "hauteur_mm": 750,
+   "params": {
+    "sg": 1
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C02",
+   "scene": "ensemble",
+   "label": "Cellule existante — volume standard modélisé avec le builder meuble",
+   "brand": {
+    "code": "DAP",
+    "label": "DAP"
+   },
+   "largeur_mm": 760,
+   "profondeur_mm": 710,
+   "hauteur_mm": 860,
+   "params": {
+    "builder_utilise": "meuble",
+    "front": "t1",
+    "n": 1,
+    "kind": "portes",
+    "plinthe_m": 0.1
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C03",
+   "scene": "ensemble",
+   "label": "Soubassement réfrigéré GN 1/1 H 600, 3x2 tiroirs, sous C06+C05+C04 (devis 1600x700x600 ; modélisé t 20-840)",
+   "brand": {
+    "code": "CODIGEL",
+    "label": "CODIGEL"
+   },
+   "manufacturer_reference": "A47651",
+   "largeur_mm": 1600,
+   "profondeur_mm": 820,
+   "hauteur_mm": 620,
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A47651.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/A47651.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C04",
+   "scene": "ensemble",
+   "label": "Plan neutre 1/2 module 400 posé sur C03 — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "793532",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 250,
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/793532.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/793532.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C04",
+   "scene": "ensemble",
+   "label": "Plan neutre 400 posé sur C03 — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "A35320",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 270,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A35320.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/A35320.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C05",
+   "scene": "ensemble",
+   "label": "Fourneau 4 feux vifs 800 top posé sur C03 — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "793546",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 250,
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/793546.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/793546.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C05",
+   "scene": "ensemble",
+   "label": "Fourneau 4 feux 800 posé sur C03 — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "A35288",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 270,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A35288.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/A35288.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C06",
+   "scene": "ensemble",
+   "label": "Fry-top gaz 400 posé sur C03 — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "E10203",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 250,
+   "energie": "gaz",
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/E10203.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/E10203.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "puissance_gaz_kw"
+   ]
+  },
+  {
+   "repere": "C06",
+   "scene": "ensemble",
+   "label": "Plancha 400 posée sur C03 — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "950350",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 270,
+   "puissance_elec_kw": 7.2,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/950350.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/950350.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie"
+   ]
+  },
+  {
+   "repere": "C07",
+   "scene": "ensemble",
+   "label": "Soubassement neutre ouvert 800 sous le fry-top — base ZANUSSI (objet C07_soub)",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "793536",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 620,
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/793536.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/793536.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C07",
+   "scene": "ensemble",
+   "label": "Fry-top gaz 800 posé sur son soubassement — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "E10202",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 250,
+   "energie": "gaz",
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/E10202.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/E10202.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "puissance_gaz_kw"
+   ]
+  },
+  {
+   "repere": "C07",
+   "scene": "ensemble",
+   "label": "Placard fermé 800 sous la plancha — variante CAPIC (objet C07_placard)",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "A35470",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 630,
+   "params": {
+    "variante": "capic",
+    "ztop_m": 0.63
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A35470.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/A35470.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C07",
+   "scene": "ensemble",
+   "label": "Plancha gaz 800 posée sur le placard — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "A35440",
+   "largeur_mm": 800,
+   "profondeur_mm": 820,
+   "hauteur_mm": 270,
+   "energie": "gaz",
+   "puissance_gaz_kw": 14.4,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A35440.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/A35440.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   }
+  },
+  {
+   "repere": "C08",
+   "scene": "ensemble",
+   "label": "Friteuse électrique 15 L sur pieds — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "793564",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 900,
+   "energie": "electrique",
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/793564.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/793564.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C08",
+   "scene": "ensemble",
+   "label": "Friteuse électrique 15 L — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "980485",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 900,
+   "energie": "electrique",
+   "puissance_elec_kw": 10.0,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/980485.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "photo"
+   ]
+  },
+  {
+   "repere": "C09",
+   "scene": "ensemble",
+   "label": "Friteuse électrique 15 L sur pieds — base ZANUSSI",
+   "brand": {
+    "code": "ZANUSSI",
+    "label": "ZANUSSI"
+   },
+   "manufacturer_reference": "793564",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 900,
+   "energie": "electrique",
+   "params": {
+    "variante": "zanussi"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/793564.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/793564.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C09",
+   "scene": "ensemble",
+   "label": "Friteuse électrique 15 L — variante CAPIC",
+   "brand": {
+    "code": "CAPIC",
+    "label": "CAPIC"
+   },
+   "manufacturer_reference": "980485",
+   "largeur_mm": 400,
+   "profondeur_mm": 820,
+   "hauteur_mm": 900,
+   "energie": "electrique",
+   "puissance_elec_kw": 10.0,
+   "params": {
+    "variante": "capic"
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/980485.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "photo"
+   ]
+  },
+  {
+   "repere": "C10",
+   "scene": "ensemble",
+   "label": "Étagère murale barreaudée 2000x400 — ad hoc (3 barreaux, 3 consoles) ; le plan la dessine ~2400, écart à signaler",
+   "manufacturer_reference": "C42430",
+   "largeur_mm": 2000,
+   "profondeur_mm": 400,
+   "params": {
+    "barreaux_t": [
+     140,
+     270,
+     400
+    ],
+    "consoles_s": [
+     1080,
+     2030,
+     2980
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C11",
+   "scene": "ensemble",
+   "label": "Table en angle avec bac 400x400, dosseret et piètement — sur mesure (polygone monde)",
+   "largeur_mm": 2245,
+   "profondeur_mm": 730,
+   "hauteur_mm": 900,
+   "params": {
+    "polygone": [
+     [
+      6888,
+      4050
+     ],
+     [
+      9030,
+      4050
+     ],
+     [
+      9030,
+      4780
+     ],
+     [
+      7590,
+      4780
+     ],
+     [
+      7512,
+      4649
+     ],
+     [
+      6785,
+      4229
+     ]
+    ],
+    "bac": {
+     "x": [
+      7680,
+      8080
+     ],
+     "y": [
+      4240,
+      4640
+     ],
+     "z_m": [
+      0.62,
+      0.899
+     ]
+    }
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C11",
+   "scene": "ensemble",
+   "label": "Mélangeur monotrou sur la table C11",
+   "manufacturer_reference": "998142",
+   "params": {
+    "sg": 1,
+    "port": 320
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/998142.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "C12",
+   "scene": "ensemble",
+   "label": "Four mixte Cook Master 6 GN 1/1 posé sur la table d'angle (repère inline miroir pour poignée à gauche)",
+   "brand": {
+    "code": "MY_CHEF",
+    "label": "MY CHEF"
+   },
+   "largeur_mm": 760,
+   "profondeur_mm": 710,
+   "hauteur_mm": 750,
+   "params": {
+    "sg": 1
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C12",
+   "scene": "ensemble",
+   "label": "Hotte à condensation sur le four — caisson simple (ni fiche ni photo EL04937)",
+   "brand": {
+    "code": "MY_CHEF",
+    "label": "MY CHEF"
+   },
+   "manufacturer_reference": "EL04937",
+   "largeur_mm": 760,
+   "profondeur_mm": 740,
+   "hauteur_mm": 150,
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C13",
+   "scene": "ensemble",
+   "label": "Friteuse à poser x3 sur C14 (emplacements de 280 mm, friteuse 265 centrée)",
+   "brand": {
+    "code": "FIAMMA",
+    "label": "FIAMMA"
+   },
+   "manufacturer_reference": "950333",
+   "largeur_mm": 265,
+   "profondeur_mm": 475,
+   "hauteur_mm": 375,
+   "params": {
+    "nb": 3
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/950333.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/950333.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw"
+   ]
+  },
+  {
+   "repere": "C14",
+   "scene": "ensemble",
+   "label": "Meuble négatif 4 tiroirs avec dosseret (2 blocs de 2 ; côté groupe inconnu, module groupe non modélisé)",
+   "brand": {
+    "code": "INOMAK",
+    "label": "INOMAK"
+   },
+   "manufacturer_reference": "523903",
+   "largeur_mm": 1390,
+   "profondeur_mm": 700,
+   "hauteur_mm": 900,
+   "params": {
+    "front": "t0",
+    "n": 2,
+    "groupe": null,
+    "dessus": true,
+    "plinthe_m": 0.15
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/523903.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "C15",
+   "scene": "ensemble",
+   "label": "Meuble bas traversant 2000x700 : 4 portes côté cuisine (builder meuble) + 4 portes côté salle ad hoc",
+   "brand": {
+    "code": "REALINOX",
+    "label": "REALINOX"
+   },
+   "manufacturer_reference": "C41057",
+   "largeur_mm": 2000,
+   "profondeur_mm": 700,
+   "hauteur_mm": 870,
+   "params": {
+    "front": "t0",
+    "n": 4,
+    "kind": "portes",
+    "dessus": false,
+    "portes_salle_t": [
+     9260,
+     9275
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C16",
+   "scene": "ensemble",
+   "label": "Dessus de passe en angle — polygone sur mesure (objet dessus_passe), découpé pour le bain-marie C17",
+   "params": {
+    "polygone": [
+     [
+      6572.9,
+      7836.4
+     ],
+     [
+      7826.2,
+      8560
+     ],
+     [
+      9430,
+      8560
+     ],
+     [
+      9430,
+      9260
+     ],
+     [
+      7437.3,
+      9259.2
+     ],
+     [
+      6172.9,
+      8529.2
+     ]
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C16",
+   "scene": "ensemble",
+   "label": "Étagère chauffante sur 4 colonnettes, 2 niveaux x 2 rampes céramique de 985 (devis : rampe SOFRACA L 900)",
+   "brand": {
+    "code": "SOFRACA",
+    "label": "SOFRACA"
+   },
+   "manufacturer_reference": "D02971",
+   "largeur_mm": 1970,
+   "profondeur_mm": 400,
+   "hauteur_mm": 830,
+   "puissance_elec_kw": 1.5,
+   "params": {
+    "colonnettes": [
+     [
+      7500,
+      8700
+     ],
+     [
+      7500,
+      9120
+     ],
+     [
+      9380,
+      8700
+     ],
+     [
+      9380,
+      9120
+     ]
+    ],
+    "niveaux_z_m": [
+     1.3,
+     1.7
+    ],
+    "rampes_x0": [
+     7450,
+     8435
+    ],
+    "rampe_L": 985
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/D02971.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/D02971.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie"
+   ]
+  },
+  {
+   "repere": "C17",
+   "scene": "ensemble",
+   "label": "Bain-marie encastré dans le dessus de passe : meuble 2 portes + grande cuve 700x600 + 6 bacs GN 1/3 + dosseret",
+   "brand": {
+    "code": "SOFRACA",
+    "label": "SOFRACA"
+   },
+   "manufacturer_reference": "D03291",
+   "largeur_mm": 800,
+   "profondeur_mm": 800,
+   "hauteur_mm": 870,
+   "puissance_elec_kw": 3.5,
+   "params": {
+    "builder_support": "meuble",
+    "front": "t1",
+    "n": 2,
+    "kind": "portes",
+    "dessus": false,
+    "cuve": {
+     "s": [
+      1780,
+      2480
+     ],
+     "t": [
+      120,
+      720
+     ],
+     "z_m": [
+      0.7,
+      0.899
+     ]
+    },
+    "bacs_gn13": 6
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/D03291.pdf"
+    },
+    {
+     "kind": "photo",
+     "path": "assets/fiches/photos/D03291.jpg"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "devis": "v4 EBP",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie"
+   ]
+  },
+  {
+   "repere": "C18",
+   "scene": "ensemble",
+   "label": "Meuble réfrigéré 6 tiroirs dos à dos avec C21, groupe côté s1",
+   "brand": {
+    "code": "INOMAK",
+    "label": "INOMAK"
+   },
+   "manufacturer_reference": "523907",
+   "largeur_mm": 1790,
+   "profondeur_mm": 700,
+   "hauteur_mm": 870,
+   "params": {
+    "front": "t1",
+    "n": 3,
+    "groupe": "s1",
+    "dessus": false
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/523907.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "C18",
+   "scene": "ensemble",
+   "label": "Dessus inox central de l'îlot avec pan arrondi (objet dessus_ilot, polygone + arc r250 centré (680,2810) en repère FL)",
+   "params": {
+    "polygone_FL": [
+     [
+      830,
+      1660
+     ],
+     [
+      2620,
+      1660
+     ],
+     [
+      2620,
+      3060
+     ]
+    ],
+    "arc": {
+     "centre": [
+      680,
+      2810
+     ],
+     "r": 250,
+     "angles_deg": [
+      90,
+      180
+     ]
+    },
+    "dernier_point": [
+     430,
+     2450
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C19",
+   "scene": "ensemble",
+   "label": "Présentoir à ingrédients vitré VRX 1800/380 — ad hoc, 10 cuves au pas de 176 (modélisé 1770)",
+   "brand": {
+    "code": "ATOSA",
+    "label": "ATOSA"
+   },
+   "manufacturer_reference": "A22113",
+   "largeur_mm": 1770,
+   "profondeur_mm": 260,
+   "hauteur_mm": 200,
+   "params": {
+    "nb_cuves": 10,
+    "pas": 176
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/A22113.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "C20",
+   "scene": "ensemble",
+   "label": "Étagère 2000x600 suspendue au plafond par 4 suspentes (croquis INOX VISION)",
+   "largeur_mm": 2000,
+   "profondeur_mm": 600,
+   "params": {
+    "suspentes": [
+     [
+      775,
+      2100
+     ],
+     [
+      775,
+      2620
+     ],
+     [
+      2675,
+      2100
+     ],
+     [
+      2675,
+      2620
+     ]
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "C21",
+   "scene": "ensemble",
+   "label": "Meuble réfrigéré 6 tiroirs côté cuisson de l'îlot, groupe côté s1 (opposé à l'arrondi)",
+   "brand": {
+    "code": "INOMAK",
+    "label": "INOMAK"
+   },
+   "manufacturer_reference": "523907",
+   "largeur_mm": 1790,
+   "profondeur_mm": 700,
+   "hauteur_mm": 870,
+   "params": {
+    "front": "t0",
+    "n": 3,
+    "groupe": "s1",
+    "dessus": false
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/523907.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "C21",
+   "scene": "ensemble",
+   "label": "Dessus inox central de l'îlot avec pan arrondi (objet dessus_ilot, polygone + arc r250 centré (680,2810) en repère FL)",
+   "params": {
+    "polygone_FL": [
+     [
+      830,
+      1660
+     ],
+     [
+      2620,
+      1660
+     ],
+     [
+      2620,
+      3060
+     ]
+    ],
+    "arc": {
+     "centre": [
+      680,
+      2810
+     ],
+     "r": 250,
+     "angles_deg": [
+      90,
+      180
+     ]
+    },
+    "dernier_point": [
+     430,
+     2450
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "L01",
+   "scene": "ensemble",
+   "label": "Table d'entrée de machine en angle — polygone sur mesure avec bac 500x400, trou vide-ordures Ø300 en (7740,11150), dosserets, piètement + douchette (998140)",
+   "hauteur_mm": 900,
+   "params": {
+    "polygone": [
+     [
+      7430,
+      10340
+     ],
+     [
+      8050,
+      10340
+     ],
+     [
+      8050,
+      11780
+     ],
+     [
+      8730,
+      11780
+     ],
+     [
+      8730,
+      12470
+     ],
+     [
+      7430,
+      12470
+     ]
+    ],
+    "bac": {
+     "x": [
+      8100,
+      8600
+     ],
+     "y": [
+      11840,
+      12240
+     ],
+     "z_m": [
+      0.55,
+      0.899
+     ]
+    },
+    "douchette_xy": [
+     8350,
+     12400
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "L02",
+   "scene": "ensemble",
+   "label": "Lave-vaisselle à capot L305-CV avec condenseur de buées — ad hoc d'après photo et FT 130828 (H hors tout 1700)",
+   "brand": {
+    "code": "LAMBER",
+    "label": "LAMBER"
+   },
+   "manufacturer_reference": "130828",
+   "largeur_mm": 680,
+   "profondeur_mm": 770,
+   "hauteur_mm": 1700,
+   "params": {
+    "capot_z_m": [
+     0.85,
+     1.55
+    ],
+    "condenseur_z_m": [
+     1.55,
+     1.65
+    ]
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/130828.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "L03",
+   "scene": "ensemble",
+   "label": "Table de sortie de machine avec piètement, étagère basse et casier 500x500",
+   "largeur_mm": 1060,
+   "profondeur_mm": 690,
+   "hauteur_mm": 900,
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "L04",
+   "scene": "ensemble",
+   "label": "Rayonnage Fermostock 4 niveaux de clayettes (refs devis B13503 B13518 B13485 B26155 B26255)",
+   "brand": {
+    "code": "FERMOD",
+    "label": "FERMOD"
+   },
+   "manufacturer_reference": "B13503",
+   "largeur_mm": 1380,
+   "profondeur_mm": 460,
+   "hauteur_mm": 1800,
+   "params": {
+    "montants_x": [
+     9105,
+     9780,
+     10455
+    ],
+    "montants_y": [
+     10315,
+     10745
+    ],
+    "clayettes_z_m": [
+     0.2,
+     0.7,
+     1.2,
+     1.7
+    ]
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/B13503.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "P01",
+   "scene": "ensemble",
+   "label": "Meuble réfrigéré 6 tiroirs pâtisserie, contre le mur nord, façade sud (côté groupe inconnu)",
+   "brand": {
+    "code": "INOMAK",
+    "label": "INOMAK"
+   },
+   "manufacturer_reference": "523907",
+   "largeur_mm": 1440,
+   "profondeur_mm": 700,
+   "hauteur_mm": 870,
+   "params": {
+    "front": "t0",
+    "n": 3,
+    "groupe": null,
+    "dessus": false
+   },
+   "files": [
+    {
+     "kind": "ft_pdf",
+     "path": "assets/fiches/ft/523907.pdf"
+    }
+   ],
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
+    "ft": "FT Gafic"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo"
+   ]
+  },
+  {
+   "repere": "P01",
+   "scene": "ensemble",
+   "label": "Meuble sous évier 1 porte (objet P01_evier, builder meuble)",
+   "largeur_mm": 360,
+   "profondeur_mm": 700,
+   "hauteur_mm": 870,
+   "params": {
+    "front": "t0",
+    "n": 1,
+    "kind": "portes",
+    "plinthe_m": 0.15,
+    "dessus": false
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "P01",
+   "scene": "ensemble",
+   "label": "Plan de travail commun 1800x700 avec bac, robinet et dosseret 100 mm (FT A48322)",
+   "largeur_mm": 1800,
+   "profondeur_mm": 700,
+   "params": {
+    "bac": {
+     "x": [
+      11820,
+      12160
+     ],
+     "y": [
+      9770,
+      10030
+     ],
+     "z_m": [
+      0.7,
+      0.899
+     ]
+    },
+    "robinet": {
+     "s": 11990,
+     "t": 10150,
+     "sg": -1,
+     "port": 180
+    }
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "P03",
+   "scene": "ensemble",
+   "label": "Étagère murale pleine sur 2 consoles (objet nommé P02 dans le code ; devis 1100x400, modélisée 1110x370)",
+   "manufacturer_reference": "C42390",
+   "largeur_mm": 1110,
+   "profondeur_mm": 370,
+   "params": {
+    "consoles_x": [
+     11230,
+     12080
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "P04",
+   "scene": "ensemble",
+   "label": "Conservateur à glaces existant — bahut blanc à 2 couvercles vitrés, volume standard sans marque (objet nommé P03 dans le code)",
+   "largeur_mm": 1110,
+   "profondeur_mm": 520,
+   "hauteur_mm": 820,
+   "params": {
+    "couvercles_y": [
+     [
+      9090,
+      9615
+     ],
+     [
+      9635,
+      10160
+     ]
+    ]
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  },
+  {
+   "repere": "P05",
+   "scene": "ensemble",
+   "label": "Table roulante 700x700 : plateau, étagère basse, étagère haute prof. 300 sur colonnettes, 4 roulettes",
+   "largeur_mm": 700,
+   "profondeur_mm": 700,
+   "hauteur_mm": 1245,
+   "params": {
+    "plateau_z_m": [
+     0.86,
+     0.89
+    ],
+    "etagere_basse_z_m": [
+     0.24,
+     0.26
+    ],
+    "etagere_haute": {
+     "y": [
+      9930,
+      10230
+     ],
+     "z_m": [
+      1.22,
+      1.245
+     ]
+    }
+   },
+   "sources": {
+    "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)"
+   },
+   "a_completer": [
+    "manufacturer_reference",
+    "energie",
+    "puissance_elec_kw",
+    "photo",
+    "ft_pdf"
+   ]
+  }
+ ]
+}
