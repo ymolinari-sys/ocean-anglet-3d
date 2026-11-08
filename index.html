@@ -68,6 +68,8 @@ body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,
 #help kbd{font:600 12px var(--font);border:1px solid var(--line);border-radius:5px;padding:1px 5px;background:var(--bg)}
 #load{font-size:12.5px!important}
 #load b{color:var(--fg);font-variant-numeric:tabular-nums}
+#bar{height:4px;margin:6px 0 10px;border-radius:2px;background:color-mix(in srgb,var(--accent) 18%,transparent);overflow:hidden}
+#bar i{display:block;height:100%;width:0;border-radius:2px;background:var(--accent);transition:width .25s}
 button.primary{font:700 14px var(--font);background:var(--accent);color:var(--accent-fg);border:0;border-radius:10px;padding:11px 16px;width:100%;cursor:pointer}
 button.primary:disabled{opacity:.55;cursor:progress}
 #vrwrap{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);display:flex;justify-content:center;gap:10px;pointer-events:none;z-index:999}
@@ -154,7 +156,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
       <li><b>Cuisiniers</b> : quatre personnes en service (chef, second, pâtissier, plongeur) pour juger des passages ; un clic les masque.</li>
     </ul>
     <p style="font-size:11px;opacity:.75">Images de synthèse non contractuelles. Personnages 3D des films : Microsoft Rocketbox (licence MIT).</p>
-    <p id="load">Chargement de la cuisine… <b>0 Mo</b></p>
+    <p id="load">Chargement de la cuisine… <b>0 %</b></p>
+    <div id="bar"><i></i></div>
     <button class="primary" id="b-start">Entrer dans la cuisine</button>
   </div>
 </div>
@@ -165,12 +168,13 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const $ = id => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
-const AV = 17;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AV = 18;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
 
 // ---------- Rendu / scène ----------
 // deux rendus, bouton « Rendu réel » (setRendu) : réel par défaut (éclairage cuit, inox brossé qui reflète la cuisine, comme la page 1
@@ -226,9 +230,16 @@ const CEIL = new Set(['plafond', 'led']);   // masqués en vue Plan
 
 let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
 
-// ---------- Chargement : scène glTF (JSON, tampon en base64 : l'hôte des artefacts ne sert ni .glb ni .bin), éclairage cuit, repères, grille ----------
+// ---------- Chargement : scène GLB (compression Meshopt, quantization conservée), éclairage cuit, repères, grille ----------
 const loaded = new Map();
-function showLoad() { const mo = [...loaded.values()].reduce((a, b) => a + b, 0) / 1048576; $('load').innerHTML = `Chargement de la cuisine… <b>${mo.toFixed(1).replace('.', ',')} Mo</b>`; }
+// Total attendu au démarrage, en octets décodés = tailles des fichiers sur le disque (le lecteur de fetchP
+// compte après dégonflage gzip). À recalculer (ls -l) si un fichier chargé dans load() change.
+const TOT = LOWMEM ? 4774795 : 6458031;
+function showLoad() {
+  const n = [...loaded.values()].reduce((a, b) => a + b, 0), pct = Math.min(100, n / TOT * 100);
+  $('load').innerHTML = `Chargement de la cuisine… <b>${Math.round(pct)} %</b> · ${(n / 1048576).toFixed(1).replace('.', ',')} Mo`;
+  $('bar').firstElementChild.style.width = pct.toFixed(1) + '%';
+}
 async function fetchP(f) {
   const r = await fetch(`assets/${f}?v=${AV}`).then(r => r.ok ? r : Promise.reject()).catch(() => fetch('assets/' + f));
   if (!r.ok) throw new Error(f);
@@ -401,17 +412,30 @@ function brossage(g) {
     let v = key.get(k); if (v === undefined) key.set(k, v = key.size); id[i] = v;
   }
   const n = key.size, up = Int32Array.from({ length: n }, (_, i) => i), root = a => { while (up[a] !== a) a = up[a] = up[up[a]]; return a; };
+  const rep = new Int32Array(n).fill(-1);
+  for (let i = 0; i < nv; i++) if (rep[id[i]] < 0) rep[id[i]] = i;
   for (let t = 0; t < I.length; t += 3) { const a = root(id[I[t]]); up[root(id[I[t + 1]])] = a; up[root(id[I[t + 2]])] = a; }
-  // arête vive = arête d'un seul triangle (sommets dédoublés aux arêtes vives ; les diagonales d'une face sont partagées par deux triangles)
+  // arête vive = pli marqué entre ses deux faces, ou bord libre — par sommets soudés, pour ne pas dépendre de l'indexation
+  // (doublons, découpage ou fusion des primitives par l'optimiseur), qui dédouble ou ressoude les arêtes selon l'outil
   const nb = new Map();
-  for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) {
-    const a = I[t + e], b = I[t + (e + 1) % 3], k = Math.min(a, b) * nv + Math.max(a, b);
-    nb.set(k, (nb.get(k) || 0) + 1);
+  for (let t = 0; t < I.length; t += 3) {
+    const i0 = 3 * I[t], i1 = 3 * I[t + 1], i2 = 3 * I[t + 2];
+    const ux = P[i1] - P[i0], uy = P[i1 + 1] - P[i0 + 1], uz = P[i1 + 2] - P[i0 + 2];
+    const vx = P[i2] - P[i0], vy = P[i2 + 1] - P[i0 + 1], vz = P[i2 + 2] - P[i0 + 2];
+    let fx = uy * vz - uz * vy, fy = uz * vx - ux * vz, fz = ux * vy - uy * vx;
+    const fl = Math.hypot(fx, fy, fz); if (fl < 1e-10) continue;   // triangle dégénéré : ignoré (l'optimiseur peut les retirer)
+    fx /= fl; fy /= fl; fz /= fl;
+    for (let e = 0; e < 3; e++) {
+      const a = id[I[t + e]], b = id[I[t + (e + 1) % 3]]; if (a === b) continue;
+      const k = Math.min(a, b) * n + Math.max(a, b), v = nb.get(k);
+      if (!v) nb.set(k, [1, fx, fy, fz, 1]);
+      else { v[0]++; v[4] = Math.min(v[4], fx * v[1] + fy * v[2] + fz * v[3]); }
+    }
   }
   const C = new Float64Array(n), S = new Float64Array(n), th = new Float64Array(n), E = new Float64Array(4 * n);
-  for (const [k, c] of nb) {
-    const a = Math.floor(k / nv), b = k % nv, dx = P[3 * b] - P[3 * a], dz = P[3 * b + 2] - P[3 * a + 2], L = Math.hypot(dx, dz);
-    if (c !== 1 || Math.abs(P[3 * b + 1] - P[3 * a + 1]) > 1e-3 || L < 0.005) continue;
+  for (const [k, v] of nb) {
+    const a = rep[Math.floor(k / n)], b = rep[k % n], dx = P[3 * b] - P[3 * a], dz = P[3 * b + 2] - P[3 * a + 2], L = Math.hypot(dx, dz);
+    if ((v[0] > 1 && v[4] > 0.9) || Math.abs(P[3 * b + 1] - P[3 * a + 1]) > 1e-3 || L < 0.005) continue;
     const r = root(id[a]), w = 4 * Math.atan2(dz, dx); C[r] += L * Math.cos(w); S[r] += L * Math.sin(w);
   }
   for (let r = 0; r < n; r++) { th[r] = Math.atan2(S[r], C[r]) / 4; E[4 * r] = E[4 * r + 2] = Infinity; E[4 * r + 1] = E[4 * r + 3] = -Infinity; }
@@ -440,23 +464,7 @@ let G = null;   // grille de circulation 5 cm (bake_export.py) : 1 = bloqué
 const labelGroup = new THREE.Group(); labelGroup.visible = false; scene.add(labelGroup);
 let REP = {}, ready = false;
 
-// scène .json = glTF aux données en base64 : décodées ici, ses images aussi, sans passer par une URL data: ou blob:
-// (l'artefact claude.ai les refuse : « Failed to load buffer »)
-function sansUrl(parser) {
-  const buf = parser.json.buffers[0], s = atob(buf.uri.slice(buf.uri.indexOf(',') + 1)), bin = new Uint8Array(s.length);
-  for (let i = 0; i < s.length; i++) bin[i] = s.charCodeAt(i);
-  delete buf.uri;
-  const loadBuffer = parser.loadBuffer.bind(parser);
-  parser.loadBuffer = i => i === 0 ? Promise.resolve(bin.buffer) : loadBuffer(i);
-  parser.loadImageSource = i => {
-    const img = parser.json.images[i];
-    return parser.getDependency('bufferView', img.bufferView)
-      .then(v => createImageBitmap(new Blob([v], { type: img.mimeType }), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }))
-      .then(b => { const t = new THREE.Texture(b); t.needsUpdate = true; return t; });
-  };
-  return { name: 'sans_url' };
-}
-// scène quantifiée (KHR_mesh_quantization, tools/quantize_glb.py) : remise en flottants et en mètres pour brossage() et les contours
+// scène quantifiée (KHR_mesh_quantization, gltfpack) : remise en flottants et en mètres pour brossage() et les contours
 function flottants(o) {
   const g = o.geometry;
   for (const k of Object.keys(g.attributes)) {
@@ -470,7 +478,7 @@ function flottants(o) {
 }
 
 async function load() {
-  const [sceneB, man, rep, grid, inoxB, inoxrB] = await Promise.all([fetchP('scene/ocean.json'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
+  const [sceneB, man, rep, grid, inoxB, inoxrB] = await Promise.all([fetchP('scene/ocean.glb'), fetchP('bake/lm.json').then(b => b.text()).then(JSON.parse),
     fetchP('bake/reperes.json').then(b => b.text()).then(JSON.parse), fetchP('bake/grille.json').then(b => b.text()).then(JSON.parse),
     fetchP(`tex/inox_${LOWMEM ? 1024 : 2048}.jpg`), fetchP('tex/inoxr_1024.jpg')]);
   const marques = Promise.all(['mychef.jpg', 'zanussi.png'].map(f => fetchP('marques/' + f).then(b => createImageBitmap(b, { premultiplyAlpha: 'none' })))).catch(() => null);
@@ -479,7 +487,7 @@ async function load() {
   for (const t of [INOX, INOXR]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.flipY = false; t.anisotropy = MAXA; t.needsUpdate = true; }
   G = { ...grid, bits: Uint8Array.from(atob(grid.bits), c => c.charCodeAt(0)) }; REP = rep;
   const lmB = /[?&]nolm\b/.test(location.search) ? null : await fetchP(`bake/lm_${LOWMEM ? man.size / 2 : man.size}.jpg`);
-  const gltf = await new GLTFLoader().register(sansUrl).parseAsync(await sceneB.text(), '');
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(await sceneB.arrayBuffer(), '');
   let tex = null;
   if (lmB) {
     tex = new THREE.Texture(await createImageBitmap(lmB));
@@ -505,9 +513,10 @@ async function load() {
     if (n === 'vitre') { m.transmission = 0; m.transparent = true; m.opacity = 0.2; m.depthWrite = false; m.roughness = 0.3; continue; }
     const kind = PHOTO.has(n) ? 'photo' : n === 'sol' ? 'sol' : '';
     if (kind === 'photo') brossage(o.geometry);
-    // anisotropie (inox de Blender) : three.js tire son repère tangent des UV0, que la quantification ne garde que sous les textures ;
-    // sans elles ce repère est nul et les reflets s'éteignent (inox noir en rendu réel) : on lui donne le sens de brossage()
-    if (m.anisotropy > 0 && !o.geometry.attributes.uv) {
+    // anisotropie (inox de Blender) : three.js tire son repère tangent des UV0, mais hors des textures ceux de SketchUp
+    // sont quelconques (et gltfpack les garde tous) : repère nul ou faux, les reflets s'éteignent (inox noir en rendu réel).
+    // Sans texture, on impose donc le sens de brossage()
+    if (m.anisotropy > 0 && !m.map) {
       if (!o.geometry.attributes.uvb) brossage(o.geometry);
       o.geometry.setAttribute('uv', o.geometry.attributes.uvb);
     }
@@ -536,7 +545,7 @@ async function load() {
   majLegende();
   document.querySelectorAll('#legend li').forEach(li => li.addEventListener('click', () => goTo(li.dataset.code)));
   brigade();
-  ready = true; $('load').hidden = true; $('b-start').disabled = false;
+  ready = true; $('load').hidden = true; $('bar').hidden = true; $('b-start').disabled = false;
   if (VIEWS[cur]) setView(cur);   // la grille est là : repositionne hors des meubles
   console.log(`[ocean] scène + éclairage ${man.size} px (${man.samples} éch.)`);
 }
@@ -767,7 +776,7 @@ async function setMurs(f) {
     [ZEL.tZel.value, ZEL.tZelN.value] = t;
   }
   // inox : repère de l'anisotropie tiré des UV (cf. load)
-  if (kind === 'murinox') for (const { geometry: g } of MUR) if (!g.attributes.uv) { if (!g.attributes.uvb) brossage(g); g.setAttribute('uv', g.attributes.uvb); }
+  if (kind === 'murinox') for (const { geometry: g } of MUR) { if (!g.attributes.uvb) brossage(g); g.setAttribute('uv', g.attributes.uvb); }
   const m = kind ? FIN[kind] ??= finition(kind) : null;
   for (const o of MUR) { o.material = m || o.userData.peinture; o.material.needsUpdate = true; }
   toast(`Murs : ${MURS[f]} (choix de rendu)`);
@@ -1173,7 +1182,7 @@ function tick() {
 }
 resize(); setView('chef');
 renderer.setAnimationLoop(tick);
-load().catch(e => { console.error(e); $('load').textContent = 'Chargement impossible : ' + e.message; toast('Chargement impossible : ' + e.message); });
+load().catch(e => { console.error(e); $('bar').hidden = true; $('load').textContent = 'Chargement impossible : ' + e.message; toast('Chargement impossible : ' + e.message); });
 window.DBG = { scene, renderer, camera, THREE, captureEnv, goTo, freeAt, blocked, pos: () => [Math.round(pos.x * 1000), Math.round(-pos.z * 1000)],
   look: (X, Y, tX, tY, p = -0.12) => stand(X, Y, tX, tY, p),
   // cuisiniers (mm) : écart mini de chaque paire sur la boucle ; par plan du film, cuisinier le plus près de la caméra et écart mini à
