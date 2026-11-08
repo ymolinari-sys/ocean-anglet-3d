@@ -207,7 +207,7 @@ const $ = id => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
-const AV = 19;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AV = 20; // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
 const AVSON = 1; // version des 6 MP3 d'ambiance (tools/ambiance_audio.py) — séparée d'AV : une recuisson ne re-télécharge pas l'audio
 
 // ---------- Rendu / scène ----------
@@ -835,7 +835,7 @@ let FICHES = null, PRIX = null, ficheCode = null;
 const COM = Q.has('com');   // mode commercial : prix lus dans assets/fiches/prix.json, fichier jamais committé (absent du site public)
 function ficheData() {
   return FICHES ??= Promise.all([
-    fetch('assets/fiches/equipements.json').then(r => r.json()),
+    fetch(`assets/fiches/equipements.json?v=${AV}`).then(r => r.json()),
     COM ? fetch('assets/fiches/prix.json').then(r => r.ok ? r.json() : null).catch(() => null) : null,
   ]).then(([d, px]) => {
     PRIX = px && px.prix_ht || null;

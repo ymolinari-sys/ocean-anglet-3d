@@ -69,6 +69,8 @@
    "largeur_mm": 1600,
    "profondeur_mm": 820,
    "hauteur_mm": 620,
+   "energie": "electrique",
+   "puissance_elec_kw": 0.5,
    "files": [
     {
      "kind": "ft_pdf",
@@ -81,12 +83,9 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "energie",
-    "puissance_elec_kw"
-   ]
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
+   }
   },
   {
    "repere": "C04",
@@ -171,6 +170,11 @@
    "params": {
     "variante": "zanussi"
    },
+   "puissance_gaz_kw": 28.0,
+   "raccordements": {
+    "gaz": "1/2\""
+   },
+   "energie": "gaz",
    "files": [
     {
      "kind": "ft_pdf",
@@ -183,12 +187,9 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "energie",
-    "puissance_elec_kw"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
+   }
   },
   {
    "repere": "C05",
@@ -240,6 +241,10 @@
    "params": {
     "variante": "zanussi"
    },
+   "puissance_gaz_kw": 10.0,
+   "raccordements": {
+    "gaz": "1/2\""
+   },
    "files": [
     {
      "kind": "ft_pdf",
@@ -252,11 +257,9 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "puissance_gaz_kw"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
+   }
   },
   {
    "repere": "C06",
@@ -343,6 +346,10 @@
    "params": {
     "variante": "zanussi"
    },
+   "puissance_gaz_kw": 20.0,
+   "raccordements": {
+    "gaz": "1/2\""
+   },
    "files": [
     {
      "kind": "ft_pdf",
@@ -355,11 +362,9 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "puissance_gaz_kw"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
+   }
   },
   {
    "repere": "C07",
@@ -371,8 +376,8 @@
    },
    "manufacturer_reference": "A35470",
    "largeur_mm": 800,
-   "profondeur_mm": 820,
-   "hauteur_mm": 630,
+   "profondeur_mm": 724,
+   "hauteur_mm": 650,
    "params": {
     "variante": "capic",
     "ztop_m": 0.63
@@ -389,7 +394,8 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
    },
    "a_completer": [
     "energie",
@@ -445,6 +451,10 @@
    "params": {
     "variante": "zanussi"
    },
+   "raccordements": {
+    "elec": "380-400 V/3N ph/50-60 Hz"
+   },
+   "puissance_elec_kw": 7.4,
    "files": [
     {
      "kind": "ft_pdf",
@@ -457,11 +467,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "puissance_elec_kw"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
+   }
   },
   {
    "repere": "C08",
@@ -473,7 +482,7 @@
    },
    "manufacturer_reference": "980485",
    "largeur_mm": 400,
-   "profondeur_mm": 820,
+   "profondeur_mm": 836,
    "hauteur_mm": 900,
    "energie": "electrique",
    "puissance_elec_kw": 10.0,
@@ -489,7 +498,8 @@
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
     "devis": "v4 EBP",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
    },
    "a_completer": [
     "photo"
@@ -511,6 +521,10 @@
    "params": {
     "variante": "zanussi"
    },
+   "raccordements": {
+    "elec": "380-400 V/3N ph/50-60 Hz"
+   },
+   "puissance_elec_kw": 7.4,
    "files": [
     {
      "kind": "ft_pdf",
@@ -523,11 +537,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "puissance_elec_kw"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
+   }
   },
   {
    "repere": "C09",
@@ -539,7 +552,7 @@
    },
    "manufacturer_reference": "980485",
    "largeur_mm": 400,
-   "profondeur_mm": 820,
+   "profondeur_mm": 836,
    "hauteur_mm": 900,
    "energie": "electrique",
    "puissance_elec_kw": 10.0,
@@ -555,7 +568,8 @@
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
     "devis": "v4 EBP",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
    },
    "a_completer": [
     "photo"
@@ -908,6 +922,7 @@
     ],
     "rampe_L": 985
    },
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -921,11 +936,9 @@
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
     "devis": "v4 EBP",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "energie"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
+   }
   },
   {
    "repere": "C17",
@@ -962,6 +975,7 @@
     },
     "bacs_gn13": 6
    },
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -975,11 +989,9 @@
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
     "devis": "v4 EBP",
-    "ft": "FT Gafic"
-   },
-   "a_completer": [
-    "energie"
-   ]
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
+   }
   },
   {
    "repere": "C18",
@@ -999,6 +1011,11 @@
     "groupe": "s1",
     "dessus": false
    },
+   "raccordements": {
+    "elec": "230"
+   },
+   "puissance_elec_kw": 0.345,
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -1007,11 +1024,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
    },
    "a_completer": [
-    "energie",
-    "puissance_elec_kw",
     "photo"
    ]
   },
@@ -1077,6 +1093,7 @@
     "nb_cuves": 10,
     "pas": 176
    },
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -1085,10 +1102,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
    },
    "a_completer": [
-    "energie",
     "puissance_elec_kw",
     "photo"
    ]
@@ -1148,6 +1165,11 @@
     "groupe": "s1",
     "dessus": false
    },
+   "raccordements": {
+    "elec": "230"
+   },
+   "puissance_elec_kw": 0.345,
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -1156,11 +1178,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
    },
    "a_completer": [
-    "energie",
-    "puissance_elec_kw",
     "photo"
    ]
   },
@@ -1294,6 +1315,11 @@
      1.65
     ]
    },
+   "energie": "electrique",
+   "puissance_elec_kw": 10.1,
+   "raccordements": {
+    "elec": "400 V / 3N / 50 Hz"
+   },
    "files": [
     {
      "kind": "ft_pdf",
@@ -1302,11 +1328,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "arbitrage": "Yannick 08/11/2026 (config vendue = devis v4)"
    },
    "a_completer": [
-    "energie",
-    "puissance_elec_kw",
     "photo"
    ]
   },
@@ -1391,6 +1416,11 @@
     "groupe": null,
     "dessus": false
    },
+   "raccordements": {
+    "elec": "230"
+   },
+   "puissance_elec_kw": 0.345,
+   "energie": "electrique",
    "files": [
     {
      "kind": "ft_pdf",
@@ -1399,11 +1429,10 @@
    ],
    "sources": {
     "nomenclature": "equipements_ocean.json (everpro/protos, 11/2026)",
-    "ft": "FT Gafic"
+    "ft": "FT Gafic",
+    "ft_valeurs": "extraction FT 08/11/2026 (everpro/protos)"
    },
    "a_completer": [
-    "energie",
-    "puissance_elec_kw",
     "photo"
    ]
   },

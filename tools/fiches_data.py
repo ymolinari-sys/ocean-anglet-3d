@@ -10,8 +10,11 @@ Sources (zéro invention : un champ non sourcé est ABSENT, jamais deviné) :
    une seule valeur distincte par référence — sinon rien). AUCUN prix repris.
 - FT Gafic            : presentation/ft/<ref>.pdf puis ft/<ref>.pdf
   (PDF copié tel quel ; photo produit = <ref>-1.jpg si présent, sinon la
-   plus grande image JPEG de la page 1 via pdfimages, contrôlée à l'œil —
-   les puissances des FT ne sont PAS extraites : fiches multi-modèles).
+   plus grande image JPEG de la page 1 via pdfimages, contrôlée à l'œil).
+- valeurs FT sûres    : Projets/everpro/protos/ft_extract_ocean.json
+  (extraction du 08/11/2026 : un champ n'est posé que s'il est ABSENT,
+   les cotes du plan ne sont jamais écrasées) + ARBITRAGES Yannick
+  08/11/2026 ci-dessous, qui priment (config vendue = devis v4).
 
 Noms de champs = schéma library_equipment du doc de conception everpro
 (docs/conception-bibliotheque-equipements.md §2.3) + brand{code,label}
@@ -26,6 +29,7 @@ SRC_NOMENCLATURE = WS / 'Projets/everpro/protos/equipements_ocean.json'
 SRC_DEVIS = WS / 'Projets/gafic/devis_ocean_anglet/presentation/v4.json'
 SRC_FT_DIRS = [WS / 'Projets/gafic/devis_ocean_anglet/presentation/ft',
                WS / 'Projets/gafic/devis_ocean_anglet/ft']
+SRC_FT_VALEURS = WS / 'Projets/everpro/protos/ft_extract_ocean.json'
 SITE = Path(__file__).resolve().parent.parent
 OUT_DIR = SITE / 'assets/fiches'
 PDFIMAGES = Path.home() / '.local/bin/pdfimages'
@@ -92,9 +96,47 @@ def puissances_devis():
             vals.setdefault(ref, set()).add(round(kw, 3))
     return {r: v.pop() for r, v in vals.items() if len(v) == 1}
 
+# Arbitrages Yannick 08/11/2026. Doubles configs CAPIC : la config vendue est
+# celle du devis v4 (DE0001145004 du 02/11/2026). Cotes ZANUSSI 793546/793564 :
+# le plan garde raison (les candidates FT étaient des cotes colis/cuve).
+# INOMAK 523903 : PNRP22 1342×700×873 ≠ plan 1390×700×900 → reste à valider.
+ARBITRAGES = {
+    # devis v4 : « Dimensions extérieures : 800x724x650 » (= 2e config de la FT)
+    'A35470': {'profondeur_mm': 724, 'hauteur_mm': 650},
+    # devis v4 : « FRITEUSE 15L ELEC / PLACARD FERME » = config complète
+    # de la FT p.1 « 400 X 836 X 900 » (836 = profondeur gamme CELTIC)
+    '980485': {'profondeur_mm': 836, 'hauteur_mm': 900},
+    # devis v4 : « 7,4 kW - 400 V tri » (FT OptiOil multi-modèles, muette)
+    '793564': {'puissance_elec_kw': 7.4},
+    # devis v4 : « 230 V mono - 0,5 kW » ; FT tableau MFB-160-CC : 502 W
+    'A47651': {'energie': 'electrique', 'puissance_elec_kw': 0.5},
+    # FT mono-modèle L305-dy-CV p.1 : « PUISSANCE TOTALE 10.100 W »,
+    # « Volt 400/3/N 50Hz » ; dims FT 670×765×1700 = devis
+    '130828': {'energie': 'electrique', 'puissance_elec_kw': 10.1,
+               'raccordements': {'elec': '400 V / 3N / 50 Hz'}},
+    # devis v4 : froid statique, réfrigérant R600a → groupe froid électrique
+    # (la puissance en W de la FT ATOSA est illisible en texte : à demander)
+    'A22113': {'energie': 'electrique'},
+}
+
+def valeurs_ft():
+    """ref -> champs sûrs de l'extraction FT (ft_extract_ocean.json)."""
+    if not SRC_FT_VALEURS.exists():
+        return {}
+    out = {}
+    for ref, d in json.loads(SRC_FT_VALEURS.read_text())['par_ref'].items():
+        ch = {}
+        for k, v in (d.get('champs') or {}).items():
+            ch[k] = ({r: x['valeur'] for r, x in v.items()}
+                     if k == 'raccordements' else v['valeur'])
+        if ch:
+            out[ref] = ch
+    return out
+
 def main():
     nom = json.loads(SRC_NOMENCLATURE.read_text())
     puissances = puissances_devis()
+    ft_vals = valeurs_ft()
     (OUT_DIR / 'ft').mkdir(parents=True, exist_ok=True)
     (OUT_DIR / 'photos').mkdir(parents=True, exist_ok=True)
 
@@ -126,6 +168,20 @@ def main():
         if e.get('params'):
             f['params'] = e['params']
 
+        # Valeurs sûres des FT : champ posé seulement s'il est ABSENT
+        # (les cotes du plan ne sont jamais écrasées), puis arbitrages
+        # Yannick 08/11/2026, qui priment (config vendue = devis v4).
+        ajouts_ft = False
+        for k, v in (ft_vals.get(ref) or {}).items():
+            if k not in f and v:
+                f[k] = v
+                ajouts_ft = True
+        for k, v in (ARBITRAGES.get(ref) or {}).items():
+            if k == 'raccordements':
+                f.setdefault('raccordements', {}).update(v)
+            else:
+                f[k] = v
+
         files = []
         if ref:
             if ref not in refs_vues:
@@ -150,11 +206,15 @@ def main():
 
         f['sources'] = {'nomenclature': 'equipements_ocean.json (everpro/protos, 11/2026)',
                         'devis': 'v4 EBP' if ref in puissances else None,
-                        'ft': 'FT Gafic' if any(x['kind'] == 'ft_pdf' for x in files) else None}
+                        'ft': 'FT Gafic' if any(x['kind'] == 'ft_pdf' for x in files) else None,
+                        'ft_valeurs': 'extraction FT 08/11/2026 (everpro/protos)' if ajouts_ft else None,
+                        'arbitrage': 'Yannick 08/11/2026 (config vendue = devis v4)'
+                                     if ref in ARBITRAGES else None}
         f['sources'] = {k: v for k, v in f['sources'].items() if v}
         manque = [c for c, ok in (
-            ('manufacturer_reference', bool(ref)), ('energie', bool(energie)),
-            ('puissance_elec_kw' if energie != 'gaz' else 'puissance_gaz_kw', ref in puissances),
+            ('manufacturer_reference', bool(ref)), ('energie', 'energie' in f),
+            ('puissance_elec_kw' if f.get('energie') != 'gaz' else 'puissance_gaz_kw',
+             'puissance_elec_kw' in f or 'puissance_gaz_kw' in f),
             ('photo', bool(files and any(x['kind'] == 'photo' for x in files))),
             ('ft_pdf', bool(files and any(x['kind'] == 'ft_pdf' for x in files)))) if not ok]
         if manque:
