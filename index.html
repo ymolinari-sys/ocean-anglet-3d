@@ -78,7 +78,7 @@ button.chip.on{background:var(--accent);color:var(--accent-fg);border-color:tran
 #cine{position:fixed;inset:0;z-index:60;background:#000;display:flex;align-items:center;justify-content:center}
 #cine video{width:100%;height:100%;object-fit:contain;background:#000}
 #cine .chip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:61}
-body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,body.film #fiche,body.film #vrwrap,body.film #toast{display:none!important}
+body.film #top,body.film #hint,body.film #note,body.film #joy,body.film #legend,body.film #fiche,body.film #vrwrap,body.film #toast,body.film #son-panel{display:none!important}
 [hidden]{display:none!important}
 #help{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,22,.45);padding:16px;overflow:auto;box-sizing:border-box}
 #help .card{margin:auto;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:18px 20px;max-width:430px;width:100%;box-sizing:border-box}
@@ -96,6 +96,10 @@ button.primary:disabled{opacity:.55;cursor:progress}
 #vrwrap button{position:static !important;transform:none;pointer-events:auto;font-family:var(--font) !important}
 @media (max-width:600px){ #note{display:none} .brand span{display:none} }
 @media (prefers-reduced-motion: reduce){ #toast{transition:none} }
+/* ambiance sonore (♪ Son) : petit panneau volume + musique sous la barre */
+#son-panel{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 118px);z-index:5;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px;width:200px}
+#son-panel label{font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#son-vol{width:100%;height:44px;margin:0;accent-color:var(--accent)}
 </style></head><body>
 
 <canvas id="c" aria-label="Visite 3D de la cuisine OCÉAN"></canvas>
@@ -119,6 +123,7 @@ button.primary:disabled{opacity:.55;cursor:progress}
     <button class="chip" id="b-variante" title="Variante de matériel : four neuf et ligne de cuisson chiffrés en MY CHEF · ZANUSSI ou en UNOX · CAPIC ; le reste ne change pas">MY CHEF · ZANUSSI</button>
     <button class="chip" id="b-murs" title="Finition des murs : peinture, zellige (3 coloris) ou inox, choix de rendu">Murs : peinture</button>
     <button class="chip on" id="b-cuis" title="Quatre cuisiniers en service, pour juger des passages">Cuisiniers</button>
+    <button class="chip" id="b-son" title="Ambiance sonore : hotte, friteuses, four, plonge, brigade et musique douce (sons de synthèse maison) — coupée par défaut">♪ Son</button>
     <button class="chip" id="b-gyro" hidden>Gyroscope</button>
     <button class="chip" id="b-install" hidden>Installer</button>
     <button class="chip" id="b-help">Aide</button>
@@ -137,6 +142,11 @@ button.primary:disabled{opacity:.55;cursor:progress}
 <div id="hint">Glisser pour regarder · Z Q S D ou flèches pour se déplacer</div>
 <div id="note">Image de synthèse non contractuelle · implantation d'après plan ZANUSSI du 04/11/26</div>
 <div id="toast" role="status"></div>
+<div id="son-panel" hidden>
+  <label for="son-vol">Ambiance sonore</label>
+  <input id="son-vol" type="range" min="0" max="100" value="70" aria-label="Volume de l'ambiance sonore">
+  <button class="chip on" id="b-musique">Musique : oui</button>
+</div>
 <div id="vrwrap"></div>
 <div id="film" hidden>
   <div id="fade"></div><div class="bar t"></div><div class="bar b"></div>
@@ -152,8 +162,8 @@ button.primary:disabled{opacity:.55;cursor:progress}
 // les deux films rendus (Blender EEVEE) : assets/film1.mp4 (présentation) et film2.mp4 (en cuisine)
 (() => {
   const cine = document.getElementById('cine'), v = document.getElementById('cinev');
-  const ouvre = n => { v.src = 'assets/film' + n + '.mp4'; cine.hidden = false; v.play().catch(() => {}); };
-  const ferme = () => { v.pause(); v.removeAttribute('src'); v.load(); cine.hidden = true; };
+  const ouvre = n => { v.src = 'assets/film' + n + '.mp4'; cine.hidden = false; v.play().catch(() => {}); document.getElementById('top').inert = true; window.sonFilm?.(true); };
+  const ferme = () => { v.pause(); v.removeAttribute('src'); v.load(); cine.hidden = true; document.getElementById('top').inert = false; window.sonFilm?.(false); };
   document.getElementById('b-cine1').addEventListener('click', () => ouvre(1));
   document.getElementById('b-cine2').addEventListener('click', () => ouvre(2));
   document.getElementById('b-cine-x').addEventListener('click', ferme);
@@ -176,8 +186,9 @@ button.primary:disabled{opacity:.55;cursor:progress}
       <li><b>Rendu réel</b> (par défaut) : éclairage précalculé et reflets de la cuisine dans l'inox ; un clic passe au rendu dessin avec contours, façon présentation.</li>
       <li><b>Murs</b> : peinture, zellige 10 × 10 cm (blanc, vert ou bleu) ou inox brossé en panneaux, un clic pour passer de l'un à l'autre ; choix de rendu sur toute la hauteur, pas une prescription.</li>
       <li><b>Cuisiniers</b> : quatre personnes en service (chef, second, pâtissier, plongeur) pour juger des passages ; un clic les masque.</li>
+      <li><b>♪ Son</b> : ambiance sonore — hotte, friteuses, four, plonge, brigade — et musique douce ; coupée par défaut, volume dans le panneau, en sourdine pendant les films.</li>
     </ul>
-    <p style="font-size:11px;opacity:.75">Images de synthèse non contractuelles. Personnages 3D des films : Microsoft Rocketbox (licence MIT).</p>
+    <p style="font-size:11px;opacity:.75">Images de synthèse non contractuelles. Personnages 3D des films : Microsoft Rocketbox (licence MIT). Ambiance sonore : sons de synthèse EVI PRO, aucun enregistrement tiers.</p>
     <p id="load">Chargement de la cuisine… <b>0 %</b></p>
     <div id="bar"><i></i></div>
     <button class="primary" id="b-start">Entrer dans la cuisine</button>
@@ -197,6 +208,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const LOWMEM = isTouch || /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent) || /[?&]lowmem\b/.test(location.search);   // téléphones, tablettes, casques autonomes : éclairage en demi-résolution
 const Q = new URLSearchParams(location.search), canvas = $('c');
 const AV = 18;   // à incrémenter à chaque nouvelle cuisson (mêmes noms de fichiers : le service worker ne doit pas servir les anciens)
+const AVSON = 1; // version des 6 MP3 d'ambiance (tools/ambiance_audio.py) — séparée d'AV : une recuisson ne re-télécharge pas l'audio
 
 // ---------- Rendu / scène ----------
 // deux rendus, bouton « Rendu réel » (setRendu) : réel par défaut (éclairage cuit, inox brossé qui reflète la cuisine, comme la page 1
@@ -1010,10 +1022,12 @@ function filmStart(video) {
   labelGroup.visible = false; camera.quaternion.identity(); renderer.toneMappingExposure *= EV_FILM;
   scene.traverse(o => { if (o.userData.ceiling) o.visible = true; });   // plafonds remis si l'on partait de la vue en plan
   document.body.classList.add('film'); $('film').hidden = false;
+  sonFilm(true);
   if (video) recStart();
 }
 function filmStop(fini) {
   if (!film) return; const a = film.avant; T0C = film.t0; film = null;   // les cuisiniers continuent là où le film les laisse
+  sonFilm(false);
   document.body.classList.remove('film'); $('film').hidden = true; $('cap').classList.remove('show');
   camera.fov = 64; camera.updateProjectionMatrix(); renderer.toneMappingExposure = a.ev;
   if (a.plan || a.contours) setRendu(a.plan, a.contours);
@@ -1084,7 +1098,7 @@ canvas.addEventListener('pointerdown', () => { if (film) filmStop(false); });
 // plus court entre les postes, à 25 cm des meubles (freeAt) ----------
 const CUIS = new THREE.Group(); CUIS.visible = Q.get('cuisiniers') !== '0'; scene.add(CUIS);
 $('b-cuis').classList.toggle('on', CUIS.visible);
-$('b-cuis').addEventListener('click', e => { CUIS.visible = !CUIS.visible; e.currentTarget.classList.toggle('on', CUIS.visible); });
+$('b-cuis').addEventListener('click', e => { CUIS.visible = !CUIS.visible; e.currentTarget.classList.toggle('on', CUIS.visible); majBrouhaha(); });
 const TC = FILM.reduce((s, sh) => s + (sh.d || DUREE), 0), VM = 1100, ACC = 0.35;   // boucle = durée du film (70,2 s) ; marche 1,1 m/s, élan 0,35 s
 // postes (mm) : où se tenir et vers où regarder, ramenés hors des meubles au chargement
 const POSTES = { C05: [6620, 6907, 5974, 6527], C06: [6905, 6446, 6259, 6066], C07: [7218, 5877, 6572, 5497], C04: [6337, 7369, 5691, 6989],
@@ -1253,6 +1267,93 @@ function animer(t) {   // t (s) : temps du film, ou de la visite (en boucle) ; c
     c.root.visible = planMode || Math.hypot(c.root.position.x - pos.x, c.root.position.z - pos.z) > 0.45;
   }
 }
+
+// ---------- Ambiance sonore : sons de synthèse maison (tools/ambiance_audio.py, aucune source externe — assets/audio/SOURCES.json),
+// coupée par défaut. Rien n'est chargé avant le premier clic sur « ♪ Son » : la première image ne change pas, et ce clic fournit le
+// geste utilisateur qu'exigent iOS et Chrome pour créer le contexte audio. Hotte, friteuses, four et plonge en sources spatialisées
+// (le volume suit la position du visiteur), brouhaha accroché au chef de la brigade (muet si les cuisiniers sont masqués), musique
+// douce non spatialisée. Tout se met en sourdine pendant les films (🎬 MP4 et visite auto) et en arrière-plan, puis reprend. ----------
+const SONS = [
+  { f: 'hotte', v: 1.0, ref: 1.6, codes: ['C05', 'C06', 'C07'], z: 2050 },   // caisson au-dessus de la ligne de cuisson
+  { f: 'friteuse', v: 0.9, ref: 1.1, codes: ['C08', 'C09'], z: 950 },
+  { f: 'four', v: 0.85, ref: 1.1, codes: ['C12'], z: 1400 },
+  { f: 'plonge', v: 0.95, ref: 1.4, codes: ['L01', 'L02'], z: 1000 },
+  { f: 'brouhaha', v: 0.8, ref: 1.8, chef: true },                           // suit le chef dans ses déplacements
+];
+const MUSV = 0.33;
+const son = { actif: false, film: false, vol: 0.7, musique: true, listener: null, charge: null, mus: null, brouhaha: null, susT: 0 };
+const sonOK = () => son.actif && !son.film && !document.hidden;
+function sonGain(cible, t = 0.3) {   // fondu du volume maître ; contexte suspendu quand tout est coupé (0 CPU hors usage)
+  const l = son.listener; if (!l) return;
+  const g = l.gain.gain, ctx = l.context;
+  clearTimeout(son.susT);
+  if (cible > 0 && ctx.state !== 'running') ctx.resume().catch(() => {});
+  const v = g.value;   // la rampe vaut aussi sur un contexte suspendu : currentTime y est gelé, elle s'exécute au resume
+  g.cancelScheduledValues(ctx.currentTime); g.setValueAtTime(v, ctx.currentTime);
+  g.linearRampToValueAtTime(cible, ctx.currentTime + t);
+  if (cible === 0) son.susT = setTimeout(() => { if (!sonOK() || !son.vol) ctx.suspend().catch(() => {}); }, t * 1000 + 150);
+}
+async function sonCharge() {   // premier clic seulement : ~1 Mo de MP3 (mis en cache par le service worker), décodés puis accrochés à la scène
+  const ctx = son.listener.context;
+  const dec = f => fetch(`assets/audio/${f}.mp3?v=${AVSON}`)
+    .then(r => { if (!r.ok) throw new Error(f + '.mp3'); return r.arrayBuffer(); })
+    .then(b => ctx.decodeAudioData(b));
+  const bufs = await Promise.all([...SONS.map(s => dec(s.f)), dec('musique')]);
+  const centre = (codes, z) => {   // centre des repères du plan (mm) → scène ; repli : la passe
+    const bs = codes.map(c => REP[c]).filter(Boolean);
+    if (!bs.length) return P3(8450, 8200, z);
+    const m = a => bs.reduce((s, b) => s + (b.min[a] + b.max[a]) / 2, 0) / bs.length;
+    return P3(m(0), m(1), z);
+  };
+  SONS.forEach((s, i) => {
+    const a = new THREE.PositionalAudio(son.listener);
+    a.setBuffer(bufs[i]); a.setLoop(true); a.setLoopStart(0.06); a.setLoopEnd(bufs[i].duration - 0.08);   // saute le silence d'encodage MP3
+    a.offset = 0.1 + Math.random() * (bufs[i].duration - 0.6);   // départs décalés : textures décorrélées
+    a.setRefDistance(s.ref); a.setRolloffFactor(1.6); a.setDistanceModel('exponential');
+    a.setVolume(s.v);
+    if (LOWMEM) a.panner.panningModel = 'equalpower';   // HRTF partout ailleurs
+    if (s.chef && BR[0]) { a.position.y = 1.5; BR[0].root.add(a); }
+    else { const h = new THREE.Object3D(); h.position.copy(centre(s.codes || [], s.z)); scene.add(h); h.add(a); }
+    if (s.chef) son.brouhaha = a;
+    a.play();
+  });
+  son.mus = new THREE.Audio(son.listener);
+  const mb = bufs[SONS.length];
+  son.mus.setBuffer(mb); son.mus.setLoop(true); son.mus.setLoopStart(0.06); son.mus.setLoopEnd(mb.duration - 0.08);
+  son.mus.setVolume(son.musique ? MUSV : 0); son.mus.play();
+  majBrouhaha();
+}
+function majBrouhaha() { if (son.brouhaha) son.brouhaha.setVolume(CUIS.visible ? SONS.find(s => s.chef).v : 0); }
+function sonFilm(on) {   // pendant un film (🎬 MP4 ou visite auto), l'ambiance se tait, puis reprend — sauf onglet passé en arrière-plan
+  son.film = on;
+  if (son.listener && son.actif) sonGain(sonOK() ? son.vol : 0, 0.35);
+}
+window.sonFilm = sonFilm;
+document.addEventListener('visibilitychange', () => { if (son.listener && son.actif && !son.film) sonGain(document.hidden ? 0 : son.vol, 0.15); });
+$('b-son').addEventListener('click', e => {
+  son.actif = !son.actif;
+  e.currentTarget.classList.toggle('on', son.actif);
+  $('son-panel').hidden = !son.actif;
+  if (!son.listener) {
+    son.listener = new THREE.AudioListener(); son.listener.gain.gain.value = 0; camera.add(son.listener);
+    son.listener.context.addEventListener('statechange', () => {   // iOS : interruption (appel, Siri, AirPods ôtés) sans visibilitychange
+      const c = son.listener.context;
+      if (c.state !== 'running' && sonOK() && son.vol > 0) sonGain(son.vol, 0.3);
+    });
+  }
+  if (!son.actif) { sonGain(0); return; }
+  sonGain(sonOK() ? son.vol : 0);
+  if (!son.charge) son.charge = sonCharge()
+    .then(() => { if (son.actif) toast('Ambiance sonore : hotte, friteuses, four, plonge et brigade'); })
+    .catch(err => { console.error('Ambiance sonore :', err); son.charge = null; son.actif = false; $('b-son').classList.remove('on'); $('son-panel').hidden = true; sonGain(0); toast('Ambiance sonore indisponible (fichiers audio inaccessibles)'); });
+});
+$('son-vol').addEventListener('input', e => { son.vol = e.target.value / 100; if (sonOK()) sonGain(son.vol, 0.08); });
+$('b-musique').addEventListener('click', e => {
+  son.musique = !son.musique;
+  e.currentTarget.classList.toggle('on', son.musique);
+  e.currentTarget.textContent = son.musique ? 'Musique : oui' : 'Musique : non';
+  son.mus?.setVolume(son.musique ? MUSV : 0);
+});
 
 // ---------- Boucle ----------
 const clock = new THREE.Clock(), vdir = new THREE.Vector3();

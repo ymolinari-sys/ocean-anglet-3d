@@ -1,0 +1,55 @@
+{
+  "_licence": "Tous les fichiers de ce dossier sont des créations EVI PRO : synthèse numérique maison (tools/ambiance_audio.py, numpy), même famille de recettes que la bande-son des films (film/build_audio.py). Aucune source externe, aucun enregistrement tiers, aucune licence à créditer. Libre d'usage et de diffusion par EVI PRO.",
+  "_boucle": "Boucles sans couture (fondu de fin recopié au début). Le viewer saute le silence d'encodage MP3 avec loopStart ≈ 0,06 s et loopEnd = durée − 0,08 s.",
+  "_date": "2026-11-08",
+  "fichiers": {
+    "hotte.mp3": {
+      "description": "Souffle du caisson de la hotte au-dessus de la ligne de cuisson, ronronnement moteur à 96 Hz.",
+      "duree_s": 12.0,
+      "octets": 80876,
+      "canaux": "mono (source spatialisée)",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    },
+    "friteuse.mp3": {
+      "description": "Bain des friteuses : bouillonnement, éclats de bulles, grésillement fin.",
+      "duree_s": 12.0,
+      "octets": 81908,
+      "canaux": "mono (source spatialisée)",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    },
+    "four.mp3": {
+      "description": "Four mixte : ventilation (97 Hz et harmoniques), souffle de convection lent.",
+      "duree_s": 12.0,
+      "octets": 82148,
+      "canaux": "mono (source spatialisée)",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    },
+    "plonge.mp3": {
+      "description": "Plonge et lave-vaisselle à capot : jet d'eau, cycle machine, entrechocs de vaisselle.",
+      "duree_s": 16.0,
+      "octets": 109172,
+      "canaux": "mono (source spatialisée)",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    },
+    "brouhaha.mp3": {
+      "description": "Brigade au travail : murmure sans paroles, découpe au couteau, casseroles éparses.",
+      "duree_s": 24.0,
+      "octets": 160220,
+      "canaux": "mono (source spatialisée)",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    },
+    "musique.mp3": {
+      "description": "Musique d'ambiance douce : nappe de 4 accords (Am F C G) en cycle de 64 s, cloches pentatoniques rares.",
+      "duree_s": 64.0,
+      "octets": 584876,
+      "canaux": "stéréo",
+      "licence": "création EVI PRO — synthèse maison, aucune source externe",
+      "generation": "tools/ambiance_audio.py (graine 11)"
+    }
+  }
+}
